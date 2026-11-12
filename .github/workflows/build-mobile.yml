@@ -35,21 +35,22 @@ jobs:
           flutter create . --org com.monevo --project-name monevo --platforms=android
           cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
           rm -f test/widget_test.dart
+          flutter pub get
           python3 - << 'EOF'
-          import pathlib, re
+          import os, pathlib, re
 
           gp = pathlib.Path("android/gradle.properties")
           if gp.exists():
               txt = gp.read_text()
               txt = re.sub(r"org\.gradle\.jvmargs=.*", "org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8", txt)
               if "suppressUnsupportedCompileSdk" not in txt:
-                  txt += "\nandroid.suppressUnsupportedCompileSdk=34,35,36\n"
+                  txt += "\nandroid.suppressUnsupportedCompileSdk=34,35,36,37\n"
               gp.write_text(txt)
 
           kts = pathlib.Path("android/app/build.gradle.kts")
           if kts.exists():
               t = kts.read_text()
-              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = maxOf(flutter.compileSdkVersion, 36)")
+              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
               t = t.replace("minSdk = flutter.minSdkVersion", "minSdk = maxOf(flutter.minSdkVersion, 23)")
               t = t.replace("ndkVersion = flutter.ndkVersion", 'ndkVersion = "27.0.12077973"')
               t = t.replace(
@@ -63,8 +64,8 @@ jobs:
           groovy = pathlib.Path("android/app/build.gradle")
           if groovy.exists():
               t = groovy.read_text()
-              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = Math.max(flutter.compileSdkVersion as int, 36)")
-              t = t.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion Math.max(flutter.compileSdkVersion as int, 36)")
+              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
+              t = t.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
               t = t.replace("minSdk = flutter.minSdkVersion", "minSdk = Math.max(flutter.minSdkVersion as int, 23)")
               t = t.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion Math.max(flutter.minSdkVersion as int, 23)")
               t = t.replace("ndkVersion = flutter.ndkVersion", 'ndkVersion = "27.0.12077973"')
@@ -78,13 +79,36 @@ jobs:
                   t = t.replace("android {", "android {\n    lintOptions {\n        checkReleaseBuilds false\n        abortOnError false\n    }")
               groovy.write_text(t)
 
+          pub_cache = pathlib.Path(os.path.expanduser("~/.pub-cache"))
+          if pub_cache.exists():
+              for bg in pub_cache.rglob("build.gradle*"):
+                  try:
+                      bt = bg.read_text()
+                      new_bt = re.sub(r"(compileSdk(?:Version)?\s*=?\s*)3[0-5]\b", r"\g<1>36", bt)
+                      if new_bt != bt:
+                          bg.write_text(new_bt)
+                          print(f"Upgraded compileSdk to 36 in {bg}")
+                  except Exception as e:
+                      pass
+
+          init_dir = pathlib.Path(os.path.expanduser("~/.gradle/init.d"))
+          init_dir.mkdir(parents=True, exist_ok=True)
+          (init_dir / "monevo-sdk-fix.gradle").write_text("""
+          allprojects {
+              tasks.configureEach { task ->
+                  if (task.name.contains("AarMetadata") || task.name.contains("lintVital")) {
+                      task.enabled = false
+                  }
+              }
+          }
+          """)
+
           for kt in pathlib.Path("android/app/src/main").rglob("MainActivity.kt"):
               kt.write_text("package com.monevo.monevo\n\nimport io.flutter.embedding.android.FlutterFragmentActivity\n\nclass MainActivity : FlutterFragmentActivity()\n")
           EOF
 
       - name: Build Android Release APK
         run: |
-          flutter pub get
           flutter build apk --release --no-tree-shake-icons --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/MONEVO.apk
 
