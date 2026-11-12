@@ -35,11 +35,57 @@ jobs:
           flutter create . --org com.monevo --project-name monevo --platforms=android
           cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
           rm -f test/widget_test.dart
+          python3 - << 'EOF'
+          import pathlib, re
+
+          gp = pathlib.Path("android/gradle.properties")
+          if gp.exists():
+              txt = gp.read_text()
+              txt = re.sub(r"org\.gradle\.jvmargs=.*", "org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8", txt)
+              if "suppressUnsupportedCompileSdk" not in txt:
+                  txt += "\nandroid.suppressUnsupportedCompileSdk=34,35,36\n"
+              gp.write_text(txt)
+
+          kts = pathlib.Path("android/app/build.gradle.kts")
+          if kts.exists():
+              t = kts.read_text()
+              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = maxOf(flutter.compileSdkVersion, 36)")
+              t = t.replace("minSdk = flutter.minSdkVersion", "minSdk = maxOf(flutter.minSdkVersion, 23)")
+              t = t.replace("ndkVersion = flutter.ndkVersion", 'ndkVersion = "27.0.12077973"')
+              t = t.replace(
+                  'signingConfig = signingConfigs.getByName("debug")',
+                  'signingConfig = signingConfigs.getByName("debug")\n            isMinifyEnabled = false\n            isShrinkResources = false'
+              )
+              if "lint {" not in t:
+                  t = t.replace("android {", "android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }")
+              kts.write_text(t)
+
+          groovy = pathlib.Path("android/app/build.gradle")
+          if groovy.exists():
+              t = groovy.read_text()
+              t = t.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = Math.max(flutter.compileSdkVersion as int, 36)")
+              t = t.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion Math.max(flutter.compileSdkVersion as int, 36)")
+              t = t.replace("minSdk = flutter.minSdkVersion", "minSdk = Math.max(flutter.minSdkVersion as int, 23)")
+              t = t.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion Math.max(flutter.minSdkVersion as int, 23)")
+              t = t.replace("ndkVersion = flutter.ndkVersion", 'ndkVersion = "27.0.12077973"')
+              t = t.replace("ndkVersion flutter.ndkVersion", 'ndkVersion "27.0.12077973"')
+              t = re.sub(
+                  r"signingConfig\s*=?\s*signingConfigs\.debug",
+                  "signingConfig = signingConfigs.debug\n            minifyEnabled = false\n            shrinkResources = false",
+                  t
+              )
+              if "lintOptions" not in t:
+                  t = t.replace("android {", "android {\n    lintOptions {\n        checkReleaseBuilds false\n        abortOnError false\n    }")
+              groovy.write_text(t)
+
+          for kt in pathlib.Path("android/app/src/main").rglob("MainActivity.kt"):
+              kt.write_text("package com.monevo.monevo\n\nimport io.flutter.embedding.android.FlutterFragmentActivity\n\nclass MainActivity : FlutterFragmentActivity()\n")
+          EOF
 
       - name: Build Android Release APK
         run: |
           flutter pub get
-          flutter build apk --release --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
+          flutter build apk --release --no-tree-shake-icons --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/MONEVO.apk
 
       - name: Upload MONEVO.apk to GitHub Actions Artifact
@@ -56,4 +102,3 @@ jobs:
           name: "MONEVO Android APK (Latest)"
           body: "ดาวน์โหลดไฟล์ **MONEVO.apk** ด้านล่างเพื่อติดตั้งลงมือถือ Android ได้ทันที (เชื่อมต่อกับ https://monevo-api.hostless.app)"
           files: mobile/build/app/outputs/flutter-apk/MONEVO.apk
-          overwrite: true

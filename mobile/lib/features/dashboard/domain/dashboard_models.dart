@@ -309,3 +309,43 @@ class NetWorthPoint {
   final String date;
   final int netWorth;
 }
+
+class ServerStorageUsage {
+  const ServerStorageUsage({
+    required this.databaseBytes,
+    required this.quotaBytes,
+    required this.usagePercent,
+    required this.rowCounts,
+    required this.transactionImagesOnServer,
+    required this.backupFilesOnServer,
+  });
+
+  factory ServerStorageUsage.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> rawCounts =
+        (json['rowCounts'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final Map<String, dynamic> policyStatus =
+        (json['policyStatus'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    return ServerStorageUsage(
+      databaseBytes: (json['databaseBytes'] as num?)?.toInt() ?? 0,
+      quotaBytes: (json['quotaBytes'] as num?)?.toInt() ?? 536870912,
+      usagePercent: (json['usagePercent'] as num?)?.toDouble() ?? 0.0,
+      rowCounts: rawCounts.map(
+        (String k, dynamic v) => MapEntry<String, int>(
+          k,
+          (v as num?)?.toInt() ?? 0,
+        ),
+      ),
+      transactionImagesOnServer:
+          (policyStatus['transactionImagesOnServer'] as num?)?.toInt() ?? 0,
+      backupFilesOnServer:
+          (policyStatus['backupFilesOnServer'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final int databaseBytes;
+  final int quotaBytes;
+  final double usagePercent;
+  final Map<String, int> rowCounts;
+  final int transactionImagesOnServer;
+  final int backupFilesOnServer;
+}

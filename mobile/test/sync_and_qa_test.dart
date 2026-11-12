@@ -3,17 +3,20 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monevo/core/network/api_exception.dart';
+import 'package:monevo/core/storage/local_cache_service.dart';
 import 'package:monevo/core/storage/local_file_driver_stub.dart';
 import 'package:monevo/core/storage/local_image_storage_service.dart';
 import 'package:monevo/core/sync/data_sync_controller.dart';
 import 'package:monevo/features/dashboard/domain/dashboard_models.dart';
+import 'package:monevo/features/transactions/data/transactions_api.dart';
 import 'package:monevo/features/transactions/data/transactions_repository.dart';
 import 'package:monevo/features/transactions/domain/transaction_model.dart';
 import 'package:monevo/features/transactions/presentation/transactions_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _OfflineSimulatingTransactionsRepo extends TransactionsRepository {
-  _OfflineSimulatingTransactionsRepo() : super(Dio());
+  _OfflineSimulatingTransactionsRepo()
+    : super(api: TransactionsApi(Dio()), cache: LocalCacheService());
 
   bool isOffline = false;
   int serverSeq = 1;
@@ -25,9 +28,9 @@ class _OfflineSimulatingTransactionsRepo extends TransactionsRepository {
 
   @override
   Future<PaginatedTransactions> getTransactions({
-    TransactionFilter filter = const TransactionFilter(),
-    String? cursor,
+    TransactionFilter? filter,
     int limit = 25,
+    String? cursor,
   }) async {
     return const PaginatedTransactions(
       items: <TransactionModel>[],

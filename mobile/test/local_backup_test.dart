@@ -6,14 +6,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monevo/core/storage/local_cache_service.dart';
 import 'package:monevo/core/storage/local_file_driver_stub.dart';
 import 'package:monevo/core/storage/local_image_storage_service.dart';
+import 'package:monevo/core/storage/secure_storage_service.dart';
+import 'package:monevo/features/accounts/data/accounts_api.dart';
 import 'package:monevo/features/accounts/data/accounts_repository.dart';
 import 'package:monevo/features/accounts/domain/account_model.dart';
+import 'package:monevo/features/auth/data/auth_api.dart';
 import 'package:monevo/features/auth/data/auth_repository.dart';
 import 'package:monevo/features/backup/data/backup_crypto.dart';
 import 'package:monevo/features/backup/data/local_backup_service.dart';
 import 'package:monevo/features/backup/domain/backup_models.dart';
+import 'package:monevo/features/categories/data/categories_api.dart';
 import 'package:monevo/features/categories/data/categories_repository.dart';
 import 'package:monevo/features/categories/domain/category_model.dart';
+import 'package:monevo/features/transactions/data/transactions_api.dart';
 import 'package:monevo/features/transactions/data/transactions_repository.dart';
 import 'package:monevo/features/transactions/domain/transaction_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +27,7 @@ void main() {
   group('Local Backup & Restore System (Section 4)', () {
     late LocalBackupService backupService;
 
-    final BackupSettingsPayload sampleSettings = const BackupSettingsPayload(
+    const BackupSettingsPayload sampleSettings = BackupSettingsPayload(
       themeMode: 'dark',
       languageCode: 'th',
       useBuddhistEra: true,
@@ -117,10 +122,23 @@ void main() {
       );
 
       backupService = LocalBackupService(
-        accountsRepo: AccountsRepository(dummyDio, cache),
-        categoriesRepo: CategoriesRepository(dummyDio, cache),
-        transactionsRepo: TransactionsRepository(dummyDio),
-        authRepo: AuthRepository(dummyDio),
+        accountsRepo: AccountsRepository(
+          api: AccountsApi(dummyDio),
+          cache: cache,
+        ),
+        categoriesRepo: CategoriesRepository(
+          api: CategoriesApi(dummyDio),
+          cache: cache,
+        ),
+        transactionsRepo: TransactionsRepository(
+          api: TransactionsApi(dummyDio),
+          cache: cache,
+        ),
+        authRepo: AuthRepository(
+          api: AuthApi(dummyDio),
+          secureStorage: InMemorySecureStorageService(),
+          localCache: cache,
+        ),
         imageStorage: imageStorage,
         fileDriver: driver,
       );
