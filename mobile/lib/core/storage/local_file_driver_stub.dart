@@ -25,9 +25,9 @@ abstract class LocalFileDriver {
   Future<void> writeExternalFile(String targetPath, Uint8List bytes);
 }
 
-LocalFileDriver createPlatformFileDriver() => _InMemoryFileDriver();
+LocalFileDriver createPlatformFileDriver() => InMemoryFileDriver();
 
-class _InMemoryFileDriver implements LocalFileDriver {
+class InMemoryFileDriver implements LocalFileDriver {
   final Map<String, Uint8List> _files = <String, Uint8List>{};
 
   @override

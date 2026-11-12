@@ -82,13 +82,15 @@ class LocalImageStorageService {
     ImagePicker? imagePicker,
   }) : _prefs = prefs,
        _fileDriver = fileDriver ?? createPlatformFileDriver(),
-       _imagePicker = imagePicker ?? ImagePicker();
+       _imagePicker = imagePicker;
 
   SharedPreferences? _prefs;
   final LocalFileDriver _fileDriver;
-  final ImagePicker _imagePicker;
+  ImagePicker? _imagePicker;
+  ImagePicker get _picker => _imagePicker ??= ImagePicker();
 
   static const String _registryKey = 'monevo_local_tx_images_v1';
+  static int _fileSeq = 0;
 
   Future<SharedPreferences> _instance() async {
     return _prefs ??= await SharedPreferences.getInstance();
@@ -162,7 +164,7 @@ class LocalImageStorageService {
         );
       }
 
-      final XFile? xfile = await _imagePicker.pickImage(
+      final XFile? xfile = await _picker.pickImage(
         source: source == LocalImagePickSource.camera
             ? ImageSource.camera
             : ImageSource.gallery,
@@ -201,11 +203,12 @@ class LocalImageStorageService {
 
     final String ext = _sanitizeExtension(picked.fileName);
     final int ts = DateTime.now().millisecondsSinceEpoch;
+    final int seq = ++_fileSeq;
     final String safeTxId = transactionId.replaceAll(
       RegExp(r'[^a-zA-Z0-9_-]'),
       '',
     );
-    final String targetFileName = 'tx_${safeTxId}_$ts.$ext';
+    final String targetFileName = 'tx_${safeTxId}_${ts}_$seq.$ext';
 
     final String storedPath = await _fileDriver.copyToAppStorage(
       targetFileName: targetFileName,

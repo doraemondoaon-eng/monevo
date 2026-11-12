@@ -4,8 +4,14 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 
 import 'local_file_driver_stub.dart';
+export 'local_file_driver_stub.dart' show LocalFileDriver, InMemoryFileDriver;
 
-LocalFileDriver createPlatformFileDriver() => _IoLocalFileDriver();
+LocalFileDriver createPlatformFileDriver() {
+  if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    return InMemoryFileDriver();
+  }
+  return _IoLocalFileDriver();
+}
 
 class _IoLocalFileDriver implements LocalFileDriver {
   static const String _subDir = 'monevo_attachments';
