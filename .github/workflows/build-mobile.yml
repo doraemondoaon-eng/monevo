@@ -105,6 +105,64 @@ jobs:
               kt.write_text("package com.monevo.monevo\n\nimport io.flutter.embedding.android.FlutterFragmentActivity\n\nclass MainActivity : FlutterFragmentActivity()\n")
           EOF
 
+      - name: Apply custom MONEVO app launcher icon (legacy + adaptive)
+        run: |
+          python3 -c "import PIL" 2>/dev/null || python3 -m pip install --quiet pillow || (sudo apt-get update -qq && sudo apt-get install -y -qq python3-pil)
+          python3 - << 'EOF'
+          import pathlib
+          from PIL import Image
+
+          icon_path = pathlib.Path("assets/icon/app_icon.png")
+          adaptive_path = pathlib.Path("assets/icon/app_icon_adaptive.png")
+          res_dir = pathlib.Path("android/app/src/main/res")
+
+          if icon_path.exists():
+              img = Image.open(icon_path).convert("RGBA")
+              for density, size in [
+                  ("mipmap-mdpi", 48),
+                  ("mipmap-hdpi", 72),
+                  ("mipmap-xhdpi", 96),
+                  ("mipmap-xxhdpi", 144),
+                  ("mipmap-xxxhdpi", 192),
+              ]:
+                  d = res_dir / density
+                  d.mkdir(parents=True, exist_ok=True)
+                  img.resize((size, size), Image.Resampling.LANCZOS).save(d / "ic_launcher.png")
+
+          if adaptive_path.exists():
+              fg = Image.open(adaptive_path).convert("RGBA")
+              for density, size in [
+                  ("mipmap-mdpi", 108),
+                  ("mipmap-hdpi", 162),
+                  ("mipmap-xhdpi", 216),
+                  ("mipmap-xxhdpi", 324),
+                  ("mipmap-xxxhdpi", 432),
+              ]:
+                  d = res_dir / density
+                  d.mkdir(parents=True, exist_ok=True)
+                  fg.resize((size, size), Image.Resampling.LANCZOS).save(d / "ic_launcher_foreground.png")
+
+              values_dir = res_dir / "values"
+              values_dir.mkdir(parents=True, exist_ok=True)
+              (values_dir / "ic_launcher_background.xml").write_text(
+                  '<?xml version="1.0" encoding="utf-8"?>\n'
+                  '<resources>\n'
+                  '    <color name="ic_launcher_background">#FAFAFA</color>\n'
+                  '</resources>\n'
+              )
+
+              anydpi_dir = res_dir / "mipmap-anydpi-v26"
+              anydpi_dir.mkdir(parents=True, exist_ok=True)
+              (anydpi_dir / "ic_launcher.xml").write_text(
+                  '<?xml version="1.0" encoding="utf-8"?>\n'
+                  '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+                  '    <background android:drawable="@color/ic_launcher_background" />\n'
+                  '    <foreground android:drawable="@mipmap/ic_launcher_foreground" />\n'
+                  '</adaptive-icon>\n'
+              )
+          print("Applied MONEVO Android launcher icons successfully.")
+          EOF
+
       - name: Build Android Release APK
         run: |
           flutter build apk --release --no-tree-shake-icons --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
