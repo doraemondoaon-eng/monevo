@@ -1,53 +1,16 @@
-name: Build iOS (.ipa) & Android (.apk)
+name: Build Android APK (MONEVO.apk)
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build-ios-ipa:
-    name: Build iPhone App (.ipa)
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: mobile
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Prepare iOS project & preserve custom Info.plist
-        run: |
-          cp ios/Runner/Info.plist /tmp/MonevoInfo.plist
-          flutter create . --org com.monevo --project-name monevo --platforms=ios
-          cp /tmp/MonevoInfo.plist ios/Runner/Info.plist
-          rm -f test/widget_test.dart
-
-      - name: Install dependencies & build iOS release (no-codesign)
-        run: |
-          flutter pub get
-          flutter build ios --release --no-codesign --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
-
-      - name: Package Runner.app into MONEVO-iOS.ipa
-        run: |
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          zip -r MONEVO-iOS.ipa Payload
-
-      - name: Upload MONEVO-iOS.ipa Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MONEVO-iOS-ipa
-          path: mobile/build/ios/iphoneos/MONEVO-iOS.ipa
-          retention-days: 30
-
   build-android-apk:
-    name: Build Android App (.apk)
+    name: Build & Publish MONEVO.apk
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,14 +35,24 @@ jobs:
           cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
           rm -f test/widget_test.dart
 
-      - name: Build Android release APK
+      - name: Build Android Release APK
         run: |
           flutter pub get
           flutter build apk --release --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/MONEVO.apk
 
-      - name: Upload MONEVO-Android.apk Artifact
+      - name: Upload MONEVO.apk to GitHub Actions Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MONEVO-Android-apk
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          name: MONEVO-Android-APK
+          path: mobile/build/app/outputs/flutter-apk/MONEVO.apk
           retention-days: 30
+
+      - name: Publish Direct Download Link on GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "MONEVO Android APK (Latest)"
+          body: "ดาวน์โหลดไฟล์ **MONEVO.apk** ด้านล่างเพื่อติดตั้งลงมือถือ Android ได้ทันที (เชื่อมต่อกับ https://monevo-api.hostless.app)"
+          files: mobile/build/app/outputs/flutter-apk/MONEVO.apk
+          overwrite: true
