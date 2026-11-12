@@ -34,6 +34,8 @@ mobile/android/.gradle/
 mobile/android/local.properties
 mobile/android/key.properties
 mobile/android/app/*.jks
+mobile/android/app/*.p12
+mobile/web/
 mobile/ios/Pods/
 mobile/ios/.symlinks/
 mobile/ios/Flutter/Generated.xcconfig

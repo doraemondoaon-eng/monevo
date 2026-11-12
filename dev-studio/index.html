@@ -38,7 +38,7 @@
       justify-content: space-between;
       gap: 16px;
       padding: 12px 22px;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       position: sticky;
@@ -71,6 +71,9 @@
       font-size: 16px;
       font-weight: 800;
       letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .brand p {
@@ -151,18 +154,16 @@
     main.workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 390px;
+      grid-template-columns: 1fr 410px;
       gap: 20px;
       padding: 20px 24px;
-      max-width: 1560px;
+      max-width: 1580px;
       width: 100%;
       margin: 0 auto;
     }
 
     @media (max-width: 1080px) {
-      main.workspace {
-        grid-template-columns: 1fr;
-      }
+      main.workspace { grid-template-columns: 1fr; }
     }
 
     .stage {
@@ -220,12 +221,10 @@
       position: relative;
       overflow: hidden;
       border-radius: 32px;
-      background: #ffffff;
+      background: #0f172a;
     }
 
-    .device-bezel.tablet .device-screen {
-      border-radius: 14px;
-    }
+    .device-bezel.tablet .device-screen { border-radius: 14px; }
 
     .device-notch {
       position: absolute;
@@ -251,6 +250,21 @@
       background: #f4f6f9;
     }
 
+    .local-boot-overlay {
+      position: absolute;
+      inset: 0;
+      background: #0b1220;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      z-index: 18;
+      gap: 12px;
+    }
+    .local-boot-overlay.visible { display: flex; }
+
     .safe-area-overlay {
       position: absolute;
       inset: 0;
@@ -258,7 +272,6 @@
       z-index: 20;
       display: none;
     }
-
     .safe-area-overlay.visible { display: block; }
     .safe-top {
       position: absolute;
@@ -314,17 +327,12 @@
       border-radius: 999px;
       background: rgba(16, 185, 129, 0.14);
       color: var(--emerald);
+      white-space: nowrap;
     }
 
-    .status-chip.warn {
-      background: rgba(245, 158, 11, 0.14);
-      color: var(--warning);
-    }
-
-    .status-chip.err {
-      background: rgba(244, 63, 94, 0.14);
-      color: var(--danger);
-    }
+    .status-chip.warn { background: rgba(245, 158, 11, 0.14); color: var(--warning); }
+    .status-chip.err { background: rgba(244, 63, 94, 0.14); color: var(--danger); }
+    .status-chip.blue { background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
 
     .kv-row {
       display: flex;
@@ -338,11 +346,7 @@
     .kv-label { color: var(--muted); }
     .kv-val { color: var(--text); font-weight: 700; text-align: right; word-break: break-word; }
 
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
 
     input[type="password"], input[type="text"] {
       width: 100%;
@@ -369,6 +373,57 @@
     }
     .build-log-box.visible { display: block; }
 
+    .changes-list {
+      max-height: 210px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .change-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 9px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid rgba(30, 41, 59, 0.9);
+      font-size: 12px;
+    }
+    .change-tag {
+      font-weight: 800;
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.16);
+      color: var(--warning);
+    }
+    .change-tag.add { background: rgba(16, 185, 129, 0.16); color: var(--emerald); }
+    .change-file {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+    }
+
+    pre.diff-view {
+      margin: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     details summary {
       cursor: pointer;
       font-size: 12.5px;
@@ -391,8 +446,11 @@
     <div class="brand">
       <div class="brand-badge">M</div>
       <div>
-        <h1>MONEVO Dev Studio</h1>
-        <p>จำลอง UX/UI แอปจริงบนเบราว์เซอร์ &amp; ศูนย์กดอัปโหลดขึ้นมือถือทันที</p>
+        <h1>
+          MONEVO Dev Studio
+          <span class="status-chip blue" id="envModeBadge">Cloud Mode</span>
+        </h1>
+        <p id="envSubtitle">จำลอง UX/UI แอปจริงบนเบราว์เซอร์ &amp; ศูนย์กดอัปโหลดขึ้นมือถือทันที</p>
       </div>
     </div>
 
@@ -411,15 +469,15 @@
       </div>
 
       <button class="btn" id="toggleSafeBtn" type="button">📏 Safe Area</button>
-      <button class="btn" id="reloadFrameBtn" type="button">🔄 โหลดใหม่</button>
-      <a class="btn" href="./app/" target="_blank" rel="noopener">↗️ เปิดเต็มจอ</a>
+      <button class="btn" id="reloadFrameBtn" type="button">⚡ รีโหลดดูผลทันที</button>
+      <a class="btn" id="openFullscreenLink" href="./app/" target="_blank" rel="noopener">↗️ เปิดเต็มจอ</a>
     </div>
   </header>
 
   <main class="workspace">
     <section class="stage">
       <div class="stage-meta">
-        <span>📲 <b>ตัวจำลองแอปจริง (Flutter Web Live Engine)</b> — ลากขึ้นลงด้วยเมาส์ได้เหมือนแตะจอมือถือจริง</span>
+        <span id="stageHint">📲 <b>ตัวจำลองแอปจริง (Flutter Live Engine)</b> — ลากขึ้นลงด้วยเมาส์ได้เหมือนแตะจอมือถือจริง</span>
         <span id="frameDimsLabel">ขนาดหน้าจอจำลอง: 360 × 800 px (ซูม 85%)</span>
       </div>
 
@@ -428,6 +486,11 @@
           <div class="device-notch"></div>
           <div class="device-screen" id="deviceScreen" style="width: 360px; height: 800px;">
             <iframe id="appFrame" src="./app/" title="MONEVO Live UX/UI Simulator"></iframe>
+            <div class="local-boot-overlay" id="localBootOverlay">
+              <div style="font-size: 32px;" id="bootEmoji">⚡</div>
+              <div style="font-weight: 800; font-size: 15px;" id="bootTitle">กำลังเตรียมตัวจำลอง Live Local...</div>
+              <div style="font-size: 12.5px; color: var(--muted); max-width: 280px;" id="bootDesc">กำลังเชื่อมต่อเครื่องจำลอง Flutter บนเครื่องคอมฯ ของคุณ...</div>
+            </div>
             <div class="safe-area-overlay" id="safeOverlay">
               <div class="safe-top"></div>
               <div class="safe-bottom"></div>
@@ -438,31 +501,59 @@
     </section>
 
     <aside class="sidebar">
-      <div class="card">
+      <!-- Local Changes Card (Shown in Local Develop Mode) -->
+      <div class="card" id="localChangesCard" style="display: none;">
         <h2>
-          <span>🚀 อัปโหลดงานขึ้นมือถือทันที</span>
-          <span class="status-chip" id="publishBadge">พร้อมสั่งงาน</span>
+          <span>📝 สิ่งที่แก้ไขไปในเครื่อง (ยังไม่อัปโหลด)</span>
+          <span class="status-chip warn" id="localChangesBadge">0 ไฟล์</span>
         </h2>
         <p style="margin-top: 0;">
-          เมื่อตรวจสอบ UX/UI ในกรอบจำลองทางซ้ายจนพอใจแล้ว กดปุ่มด้านล่างเพื่อสั่งสร้างไฟล์ <b>MONEVO.apk</b> เวอร์ชันใหม่ทันที (มือถือจะเด้งแจ้งอัปเดตอัตโนมัติในแอป)
+          ดูรายการที่แก้ไขได้ทันทีโดย <b>ไม่ต้อง Push</b> — แก้ได้เรื่อยๆ จนพอใจแล้วค่อยกดอัปโหลดทีเดียวด้านล่าง
+        </p>
+        <div class="changes-list" id="localChangesList"></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn" id="viewDiffBtn" type="button" style="flex: 1; justify-content: center;">🔍 ดูโค้ดที่แก้ (Diff)</button>
+          <button class="btn blue" id="hotRestartBtn" type="button">⚡ Hot Reload</button>
+        </div>
+        <div id="diffDrawer" style="display: none; margin-top: 10px;">
+          <pre class="diff-view" id="diffContent"></pre>
+        </div>
+      </div>
+
+      <!-- Instant Publish Card -->
+      <div class="card">
+        <h2>
+          <span>🚀 อัปโหลดทั้งหมดขึ้น Cloud &amp; มือถือ</span>
+          <span class="status-chip" id="publishBadge">พร้อมสั่งงาน</span>
+        </h2>
+        <p style="margin-top: 0;" id="publishDesc">
+          เมื่อตรวจสอบ UX/UI ในกรอบจำลองทางซ้ายจนพอใจแล้ว กดปุ่มด้านล่างเพื่อสั่งสร้างไฟล์ <b>MONEVO.apk</b> เวอร์ชันใหม่ทันที
         </p>
 
         <div class="stack">
+          <div id="localCommitBox" style="display: none;">
+            <input id="commitMessageInput" type="text" placeholder="ระบุข้อความอัปเดตสั้นๆ (ไม่ใส่ก็ได้)" />
+          </div>
+
+          <button class="btn primary" id="publishAllLocalBtn" type="button" style="display: none; justify-content: center; padding: 12px 16px; font-size: 14px;">
+            🚀 อัปโหลดงานที่แก้ทั้งหมดขึ้น Cloud ทีเดียว
+          </button>
+
           <button class="btn primary" id="publishApkBtn" type="button" style="justify-content: center; padding: 12px 16px; font-size: 14px;">
             🚀 กดอัปโหลด &amp; ออกอัปเดต APK เข้ามือถือ
           </button>
 
           <button class="btn blue" id="rebuildWebBtn" type="button" style="justify-content: center;">
-            🌐 รีเฟรชตัวจำลองเว็บให้ตรงโค้ดล่าสุด
+            🌐 รีเฟรชตัวจำลองเว็บ Cloud ให้ตรงโค้ดล่าสุด
           </button>
 
           <div class="build-log-box" id="buildLogBox"></div>
 
           <details id="tokenDetails">
-            <summary>🔐 ตั้งค่าสิทธิ์ผู้พัฒนา (GitHub Token — ทำครั้งเดียว)</summary>
+            <summary>🔐 ตั้งค่าสิทธิ์ผู้พัฒนา (GitHub Token — สำหรับโหมด Cloud)</summary>
             <div class="stack" style="margin-top: 10px;">
               <p style="margin: 0; font-size: 12px;">
-                ใส่ Fine-grained Personal Access Token (สิทธิ์ <code>Actions: Read &amp; write</code> ของคลัง <code>monevo</code>) เพื่อเปิดปุ่มสั่งอัปโหลดจากหน้านี้ (เก็บปลอดภัยเฉพาะในเบราว์เซอร์ของคุณเท่านั้น)
+                ใส่ Fine-grained Personal Access Token (สิทธิ์ <code>Actions: Read &amp; write</code> ของคลัง <code>monevo</code>) เพื่อกด Build ผ่านหน้าเว็บ Cloud ได้เลย
               </p>
               <input id="patInput" type="password" placeholder="วาง github_pat_... ที่นี่" />
               <div style="display: flex; gap: 8px;">
@@ -474,21 +565,22 @@
         </div>
       </div>
 
+      <!-- Version & Health Card -->
       <div class="card">
         <h2>
           <span>ℹ️ ข้อมูลเวอร์ชันที่แสดงอยู่</span>
           <span class="status-chip" id="apiHealthChip">เช็ก API...</span>
         </h2>
         <div class="kv-row">
-          <span class="kv-label">เวอร์ชันเว็บจำลอง</span>
+          <span class="kv-label">เวอร์ชันที่จำลองอยู่</span>
           <span class="kv-val" id="metaVersion">กำลังโหลด...</span>
         </div>
         <div class="kv-row">
-          <span class="kv-label">การแก้ไขล่าสุด</span>
+          <span class="kv-label">Commit ล่าสุด</span>
           <span class="kv-val" id="metaCommit">-</span>
         </div>
         <div class="kv-row">
-          <span class="kv-label">สร้างเมื่อ</span>
+          <span class="kv-label">เวลาอัปเดต</span>
           <span class="kv-val" id="metaTime">-</span>
         </div>
         <div class="kv-row">
@@ -497,6 +589,7 @@
         </div>
       </div>
 
+      <!-- Quick Links Card -->
       <div class="card">
         <h2><span>📦 ลิ้งค์ติดตั้ง &amp; เครื่องมือด่วน</span></h2>
         <div class="stack">
@@ -522,12 +615,15 @@
     const REPO_NAME = 'monevo';
     const APK_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/v1.0.0/MONEVO.apk`;
     const PAT_STORAGE_KEY = 'monevo_dev_studio_gh_pat';
+    const IS_LOCAL_HOST = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
 
     let currentW = 360;
     let currentH = 800;
     let currentZoom = 0.85;
     let isTablet = false;
     let pollTimer = null;
+    let lastLocalReloadCounter = 0;
+    let localFlutterUrl = null;
 
     const deviceBezel = document.getElementById('deviceBezel');
     const deviceScreen = document.getElementById('deviceScreen');
@@ -538,6 +634,7 @@
     const buildLogBox = document.getElementById('buildLogBox');
     const publishBadge = document.getElementById('publishBadge');
     const patInput = document.getElementById('patInput');
+    const bootOverlay = document.getElementById('localBootOverlay');
 
     function applyFrameGeometry() {
       deviceScreen.style.width = currentW + 'px';
@@ -575,8 +672,15 @@
       safeOverlay.classList.toggle('visible');
     });
 
-    document.getElementById('reloadFrameBtn').addEventListener('click', () => {
-      appFrame.src = './app/?t=' + Date.now();
+    document.getElementById('reloadFrameBtn').addEventListener('click', async () => {
+      if (IS_LOCAL_HOST) {
+        await fetch('/api/local/reload', { method: 'POST' });
+        if (localFlutterUrl) {
+          setTimeout(() => { appFrame.src = localFlutterUrl + '?t=' + Date.now(); }, 1600);
+        }
+      } else {
+        appFrame.src = './app/?t=' + Date.now();
+      }
     });
 
     document.getElementById('copyApkBtn').addEventListener('click', async () => {
@@ -586,9 +690,7 @@
     });
 
     const savedPat = localStorage.getItem(PAT_STORAGE_KEY) || '';
-    if (savedPat) {
-      patInput.value = savedPat;
-    }
+    if (savedPat) patInput.value = savedPat;
 
     document.getElementById('savePatBtn').addEventListener('click', () => {
       const val = patInput.value.trim();
@@ -606,6 +708,135 @@
       buildLogBox.innerHTML = html;
       publishBadge.className = 'status-chip' + (tone === 'warn' ? ' warn' : tone === 'err' ? ' err' : '');
     }
+
+    async function initLocalMode() {
+      document.getElementById('envModeBadge').textContent = 'Local Live Mode ✓';
+      document.getElementById('envModeBadge').className = 'status-chip';
+      document.getElementById('envSubtitle').textContent = 'โหมดพัฒนาในเครื่อง — แก้โค้ดปุ๊บ เห็นผลทันทีไม่ต้อง Push! แล้วค่อยกดอัปโหลดทีเดียว';
+      document.getElementById('localChangesCard').style.display = 'block';
+      document.getElementById('localCommitBox').style.display = 'block';
+      document.getElementById('publishAllLocalBtn').style.display = 'inline-flex';
+      document.getElementById('publishApkBtn').style.display = 'none';
+      document.getElementById('rebuildWebBtn').style.display = 'none';
+      document.getElementById('publishDesc').textContent =
+        'เมื่อแก้ไข UX/UI ในเครื่องหลายจุดจนครบและดูผลในตัวจำลองด้านซ้ายจนพอใจแล้ว กดปุ่มนี้ 1 ครั้งเพื่อส่งงานทั้งหมดขึ้น Cloud และออก APK เข้ามือถือทันที!';
+
+      bootOverlay.classList.add('visible');
+      await pollLocalStatus();
+      setInterval(pollLocalStatus, 2500);
+    }
+
+    async function pollLocalStatus() {
+      try {
+        const res = await fetch('/api/local/status?_t=' + Date.now());
+        if (!res.ok) return;
+        const st = await res.json();
+
+        localFlutterUrl = `http://127.0.0.1:${st.flutterPort}/`;
+        document.getElementById('openFullscreenLink').href = localFlutterUrl;
+
+        const bootTitle = document.getElementById('bootTitle');
+        const bootDesc = document.getElementById('bootDesc');
+        const bootEmoji = document.getElementById('bootEmoji');
+
+        if (!st.flutterInstalled) {
+          bootOverlay.classList.add('visible');
+          bootEmoji.textContent = '📦';
+          bootTitle.textContent = 'ยังไม่ได้ติดตั้ง Flutter SDK ในเครื่องนี้';
+          bootDesc.innerHTML = 'ติดตั้ง Flutter SDK ที่ <code>C:\\flutter</code> เพื่อให้ตัวจำลอง Hot Reload ใน 1 วินาทีทำงานได้ทันที (ดูวิธีที่แชทผู้ช่วยได้เลยครับ)';
+        } else if (st.flutterState === 'ready') {
+          bootOverlay.classList.remove('visible');
+          if (!appFrame.dataset.localLoaded) {
+            appFrame.dataset.localLoaded = '1';
+            appFrame.src = localFlutterUrl;
+          } else if (st.reloadCounter > lastLocalReloadCounter) {
+            lastLocalReloadCounter = st.reloadCounter;
+            appFrame.src = localFlutterUrl + '?r=' + st.reloadCounter;
+          }
+        } else {
+          bootOverlay.classList.add('visible');
+          bootEmoji.textContent = '⚙️';
+          bootTitle.textContent = st.flutterState === 'reloading'
+            ? 'กำลังรีเฟรชหน้าจอล่าสุด...'
+            : 'กำลังเปิดเครื่องจำลอง Flutter Live...';
+          bootDesc.textContent = (st.logs && st.logs.length) ? st.logs[st.logs.length - 1] : 'รอสักครู่...';
+        }
+
+        // Update local changes list
+        const files = st.changedFiles || [];
+        const unpushed = st.unpushedCount || 0;
+        const badge = document.getElementById('localChangesBadge');
+        badge.textContent = `${files.length} แก้ไข / ${unpushed} รอส่ง`;
+        badge.className = (files.length || unpushed) ? 'status-chip warn' : 'status-chip';
+
+        const list = document.getElementById('localChangesList');
+        if (files.length === 0 && unpushed === 0) {
+          list.innerHTML = '<div style="font-size:12.5px; color:var(--muted);">ยังไม่มีการแก้ไขค้างไว้ (ตรงกับ Cloud ล่าสุดแล้ว)</div>';
+        } else {
+          let html = files.map(f => {
+            const cls = f.code.includes('?') || f.code.includes('A') ? 'add' : '';
+            const label = cls ? 'NEW' : f.code;
+            return `<div class="change-item"><span class="change-tag ${cls}">${label}</span><span class="change-file" title="${f.file}">${f.file}</span></div>`;
+          }).join('');
+          if (unpushed > 0) {
+            html += `<div class="change-item"><span class="change-tag add">PUSH</span><span class="change-file">มี ${unpushed} Commit ที่บันทึกไว้ รอกดอัปโหลดขึ้น Cloud</span></div>`;
+          }
+          list.innerHTML = html;
+        }
+      } catch (_) {}
+    }
+
+    document.getElementById('viewDiffBtn').addEventListener('click', async () => {
+      const drawer = document.getElementById('diffDrawer');
+      if (drawer.style.display === 'block') {
+        drawer.style.display = 'none';
+        return;
+      }
+      drawer.style.display = 'block';
+      const content = document.getElementById('diffContent');
+      content.textContent = 'กำลังโหลดโค้ดที่แก้ไข...';
+      const res = await fetch('/api/local/diff');
+      const data = await res.json();
+      let txt = data.diff || '';
+      if (data.untracked && data.untracked.length) {
+        txt = 'ไฟล์ใหม่ที่เพิ่มเข้ามา:\n- ' + data.untracked.join('\n- ') + '\n\n' + txt;
+      }
+      content.textContent = txt.trim() || 'ยังไม่มี diff ที่ยังไม่ commit';
+    });
+
+    document.getElementById('hotRestartBtn').addEventListener('click', async () => {
+      await fetch('/api/local/reload', { method: 'POST' });
+    });
+
+    document.getElementById('publishAllLocalBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('publishAllLocalBtn');
+      const message = document.getElementById('commitMessageInput').value.trim();
+      btn.disabled = true;
+      publishBadge.textContent = 'กำลังอัปโหลด...';
+      showLog('🚀 กำลัง Commit &amp; Push งานทั้งหมดขึ้น GitHub Cloud (เว็บจำลอง + แอปมือถือจะอัปเดตตามอัตโนมัติ)...', 'warn');
+      try {
+        const res = await fetch('/api/local/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          publishBadge.textContent = 'อัปโหลดไม่สำเร็จ';
+          showLog(`❌ อัปโหลดไม่สำเร็จ:<br><small>${data.error || 'Unknown error'}</small>`, 'err');
+        } else {
+          publishBadge.textContent = 'ส่งขึ้น Cloud แล้ว ✓';
+          document.getElementById('commitMessageInput').value = '';
+          showLog(`✅ <b>ส่งงานทั้งหมดขึ้น Cloud สำเร็จแล้ว!</b><br>GitHub Actions กำลังสร้างเว็บ Cloud (~2 นาที) และ MONEVO.apk (~6 นาที) เพื่อส่งเข้ามือถือของคุณอัตโนมัติ`, 'ok');
+          pollLocalStatus();
+        }
+      } catch (e) {
+        publishBadge.textContent = 'ผิดพลาด';
+        showLog(`❌ Error: ${e.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     async function dispatchWorkflow(workflowFile, label) {
       const pat = (localStorage.getItem(PAT_STORAGE_KEY) || patInput.value || '').trim();
@@ -721,7 +952,7 @@
         const res = await fetch('./dev-meta.json?t=' + Date.now());
         if (!res.ok) throw new Error('no meta');
         const m = await res.json();
-        document.getElementById('metaVersion').textContent = `${m.versionName || '-'} (Build ${m.buildNumber || '-'})`;
+        document.getElementById('metaVersion').textContent = `${m.versionName || '-'} (${m.buildNumber || '-'})`;
         document.getElementById('metaCommit').textContent = `${(m.commitSha || '').slice(0, 7)} — ${m.commitMessage || ''}`;
         document.getElementById('metaTime').textContent = m.builtAt ? new Date(m.builtAt).toLocaleString('th-TH') : '-';
       } catch (_) {
@@ -749,7 +980,9 @@
     applyFrameGeometry();
     loadMeta();
     checkApiHealth();
+    if (IS_LOCAL_HOST) {
+      initLocalMode();
+    }
   </script>
 </body>
 </html>
-
