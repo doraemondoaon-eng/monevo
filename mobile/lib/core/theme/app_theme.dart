@@ -260,9 +260,10 @@ class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          visualDensity: VisualDensity.comfortable,
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           padding: WidgetStateProperty.all<EdgeInsetsGeometry>(
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
           shape: WidgetStateProperty.all<OutlinedBorder>(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

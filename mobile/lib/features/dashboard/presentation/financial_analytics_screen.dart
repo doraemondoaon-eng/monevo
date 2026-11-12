@@ -116,36 +116,33 @@ class FinancialAnalyticsScreen extends ConsumerWidget {
               if (breakdown != null) ...<Widget>[
                 PremiumCard(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          Text(
-                            strings.categoryBreakdownTitle,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                      Text(
+                        strings.categoryBreakdownTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: <ButtonSegment<String>>[
+                          ButtonSegment<String>(
+                            value: 'expense',
+                            label: Text(strings.expense),
                           ),
-                          SegmentedButton<String>(
-                            segments: <ButtonSegment<String>>[
-                              ButtonSegment<String>(
-                                value: 'expense',
-                                label: Text(strings.expense),
-                              ),
-                              ButtonSegment<String>(
-                                value: 'income',
-                                label: Text(strings.income),
-                              ),
-                            ],
-                            selected: <String>{state.categoryType},
-                            onSelectionChanged: (Set<String> s) {
-                              ref
-                                  .read(dashboardControllerProvider.notifier)
-                                  .setCategoryType(s.first);
-                            },
+                          ButtonSegment<String>(
+                            value: 'income',
+                            label: Text(strings.income),
                           ),
                         ],
+                        selected: <String>{state.categoryType},
+                        onSelectionChanged: (Set<String> s) {
+                          ref
+                              .read(dashboardControllerProvider.notifier)
+                              .setCategoryType(s.first);
+                        },
                       ),
                       const SizedBox(height: 12),
                       if (breakdown.items.isEmpty)

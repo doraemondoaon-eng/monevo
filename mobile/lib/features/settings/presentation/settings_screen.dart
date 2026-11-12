@@ -486,31 +486,50 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                   if (lockState.hasPin) ...<Widget>[
                     const Divider(indent: 56),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.timer_outlined,
-                        color: AppColors.primaryEmerald,
-                      ),
-                      title: Text(
-                        strings.autoLockLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      trailing: SegmentedButton<int>(
-                        segments: const <ButtonSegment<int>>[
-                          ButtonSegment<int>(value: 15, label: Text('15s')),
-                          ButtonSegment<int>(value: 60, label: Text('60s')),
-                          ButtonSegment<int>(value: 300, label: Text('5m')),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              const Icon(
+                                Icons.timer_outlined,
+                                color: AppColors.primaryEmerald,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  strings.autoLockLabel,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SegmentedButton<int>(
+                            showSelectedIcon: false,
+                            segments: const <ButtonSegment<int>>[
+                              ButtonSegment<int>(value: 15, label: Text('15s')),
+                              ButtonSegment<int>(value: 60, label: Text('60s')),
+                              ButtonSegment<int>(value: 300, label: Text('5m')),
+                            ],
+                            selected: <int>{
+                              <int>{15, 60, 300}.contains(
+                                    lockState.autoLockSeconds,
+                                  )
+                                  ? lockState.autoLockSeconds
+                                  : 60,
+                            },
+                            onSelectionChanged: (Set<int> s) {
+                              ref
+                                  .read(appLockControllerProvider.notifier)
+                                  .setAutoLockSeconds(s.first);
+                            },
+                          ),
                         ],
-                        selected: <int>{
-                          <int>{15, 60, 300}.contains(lockState.autoLockSeconds)
-                              ? lockState.autoLockSeconds
-                              : 60,
-                        },
-                        onSelectionChanged: (Set<int> s) {
-                          ref
-                              .read(appLockControllerProvider.notifier)
-                              .setAutoLockSeconds(s.first);
-                        },
                       ),
                     ),
                   ],

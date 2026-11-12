@@ -825,39 +825,34 @@ class _IncomeVsExpenseComparisonCardState
 
     return PremiumCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  widget.strings.tr(
-                    'เปรียบเทียบรายรับ vs รายจ่าย',
-                    'Income vs Expense Comparison',
-                  ),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+          Text(
+            widget.strings.tr(
+              'เปรียบเทียบรายรับ vs รายจ่าย',
+              'Income vs Expense Comparison',
+            ),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: <ButtonSegment<bool>>[
+              ButtonSegment<bool>(
+                value: false,
+                label: Text(widget.strings.tr('เดือนนี้', 'Monthly')),
               ),
-              SegmentedButton<bool>(
-                segments: <ButtonSegment<bool>>[
-                  ButtonSegment<bool>(
-                    value: false,
-                    label: Text(widget.strings.tr('เดือนนี้', 'Monthly')),
-                  ),
-                  ButtonSegment<bool>(
-                    value: true,
-                    label: Text(widget.strings.tr('สะสมทั้งหมด', 'All-Time')),
-                  ),
-                ],
-                selected: <bool>{_showAllTime},
-                onSelectionChanged: (Set<bool> next) {
-                  setState(() => _showAllTime = next.first);
-                },
+              ButtonSegment<bool>(
+                value: true,
+                label: Text(widget.strings.tr('สะสมทั้งหมด', 'All-Time')),
               ),
             ],
+            selected: <bool>{_showAllTime},
+            onSelectionChanged: (Set<bool> next) {
+              setState(() => _showAllTime = next.first);
+            },
           ),
           const SizedBox(height: 16),
           ClipRRect(
@@ -1032,58 +1027,20 @@ class _CashflowChartCard extends StatelessWidget {
 
     return PremiumCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  strings.tr(
-                    'กราฟรายรับ-รายจ่าย (รายวัน/เดือน/ปี)',
-                    'Income & Expense Analytics',
-                  ),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (granularity == CashflowGranularity.daily)
-                SegmentedButton<int>(
-                  segments: const <ButtonSegment<int>>[
-                    ButtonSegment<int>(value: 7, label: Text('7D')),
-                    ButtonSegment<int>(value: 14, label: Text('14D')),
-                    ButtonSegment<int>(value: 30, label: Text('30D')),
-                  ],
-                  selected: <int>{dailyDays},
-                  onSelectionChanged: (Set<int> s) =>
-                      onDailyDaysChanged(s.first),
-                )
-              else if (granularity == CashflowGranularity.monthly)
-                SegmentedButton<int>(
-                  segments: const <ButtonSegment<int>>[
-                    ButtonSegment<int>(value: 3, label: Text('3M')),
-                    ButtonSegment<int>(value: 6, label: Text('6M')),
-                    ButtonSegment<int>(value: 12, label: Text('12M')),
-                  ],
-                  selected: <int>{monthlyMonths},
-                  onSelectionChanged: (Set<int> s) =>
-                      onMonthlyMonthsChanged(s.first),
-                )
-              else
-                SegmentedButton<int>(
-                  segments: const <ButtonSegment<int>>[
-                    ButtonSegment<int>(value: 3, label: Text('3Y')),
-                    ButtonSegment<int>(value: 5, label: Text('5Y')),
-                  ],
-                  selected: <int>{yearlyYears},
-                  onSelectionChanged: (Set<int> s) =>
-                      onYearlyYearsChanged(s.first),
-                ),
-            ],
+          Text(
+            strings.tr(
+              'กราฟรายรับ-รายจ่าย (รายวัน/เดือน/ปี)',
+              'Income & Expense Analytics',
+            ),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           SegmentedButton<CashflowGranularity>(
+            showSelectedIcon: false,
             segments: <ButtonSegment<CashflowGranularity>>[
               ButtonSegment<CashflowGranularity>(
                 value: CashflowGranularity.daily,
@@ -1102,6 +1059,42 @@ class _CashflowChartCard extends StatelessWidget {
             onSelectionChanged: (Set<CashflowGranularity> s) =>
                 onGranularityChanged(s.first),
           ),
+          const SizedBox(height: 8),
+          if (granularity == CashflowGranularity.daily)
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const <ButtonSegment<int>>[
+                ButtonSegment<int>(value: 7, label: Text('7D')),
+                ButtonSegment<int>(value: 14, label: Text('14D')),
+                ButtonSegment<int>(value: 30, label: Text('30D')),
+              ],
+              selected: <int>{dailyDays},
+              onSelectionChanged: (Set<int> s) =>
+                  onDailyDaysChanged(s.first),
+            )
+          else if (granularity == CashflowGranularity.monthly)
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const <ButtonSegment<int>>[
+                ButtonSegment<int>(value: 3, label: Text('3M')),
+                ButtonSegment<int>(value: 6, label: Text('6M')),
+                ButtonSegment<int>(value: 12, label: Text('12M')),
+              ],
+              selected: <int>{monthlyMonths},
+              onSelectionChanged: (Set<int> s) =>
+                  onMonthlyMonthsChanged(s.first),
+            )
+          else
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const <ButtonSegment<int>>[
+                ButtonSegment<int>(value: 3, label: Text('3Y')),
+                ButtonSegment<int>(value: 5, label: Text('5Y')),
+              ],
+              selected: <int>{yearlyYears},
+              onSelectionChanged: (Set<int> s) =>
+                  onYearlyYearsChanged(s.first),
+            ),
           const SizedBox(height: 18),
           if (series.isEmpty)
             SizedBox(
@@ -1227,32 +1220,29 @@ class _CategoryDonutCard extends StatelessWidget {
 
     return PremiumCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                strings.categoryBreakdownTitle,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+          Text(
+            strings.categoryBreakdownTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: <ButtonSegment<String>>[
+              ButtonSegment<String>(
+                value: 'expense',
+                label: Text(strings.expense),
               ),
-              SegmentedButton<String>(
-                segments: <ButtonSegment<String>>[
-                  ButtonSegment<String>(
-                    value: 'expense',
-                    label: Text(strings.expense),
-                  ),
-                  ButtonSegment<String>(
-                    value: 'income',
-                    label: Text(strings.income),
-                  ),
-                ],
-                selected: <String>{selectedType},
-                onSelectionChanged: (Set<String> s) => onTypeChanged(s.first),
+              ButtonSegment<String>(
+                value: 'income',
+                label: Text(strings.income),
               ),
             ],
+            selected: <String>{selectedType},
+            onSelectionChanged: (Set<String> s) => onTypeChanged(s.first),
           ),
           const SizedBox(height: 16),
           if (items.isEmpty)
@@ -1364,15 +1354,18 @@ class _AccountBalanceOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text(
-                strings.tr(
-                  'ภาพรวมยอดคงเหลือรายบัญชี',
-                  'Account Balance Overview',
-                ),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  strings.tr(
+                    'ภาพรวมยอดคงเหลือรายบัญชี',
+                    'Account Balance Overview',
+                  ),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               TextButton(
                 onPressed: () => context.go('/accounts'),
                 child: Text(strings.viewAll),
@@ -1477,30 +1470,25 @@ class _NetWorthTrendCard extends StatelessWidget {
 
     return PremiumCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  strings.netWorthTrendTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              SegmentedButton<int>(
-                segments: const <ButtonSegment<int>>[
-                  ButtonSegment<int>(value: 7, label: Text('7D')),
-                  ButtonSegment<int>(value: 30, label: Text('30D')),
-                  ButtonSegment<int>(value: 90, label: Text('90D')),
-                  ButtonSegment<int>(value: 365, label: Text('365D')),
-                ],
-                selected: <int>{selectedDays},
-                onSelectionChanged: (Set<int> s) => onDaysChanged(s.first),
-              ),
+          Text(
+            strings.netWorthTrendTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<int>(
+            showSelectedIcon: false,
+            segments: const <ButtonSegment<int>>[
+              ButtonSegment<int>(value: 7, label: Text('7D')),
+              ButtonSegment<int>(value: 30, label: Text('30D')),
+              ButtonSegment<int>(value: 90, label: Text('90D')),
+              ButtonSegment<int>(value: 365, label: Text('365D')),
             ],
+            selected: <int>{selectedDays},
+            onSelectionChanged: (Set<int> s) => onDaysChanged(s.first),
           ),
           const SizedBox(height: 18),
           if (spots.isEmpty)
@@ -1513,6 +1501,7 @@ class _NetWorthTrendCard extends StatelessWidget {
               height: 180,
               child: LineChart(
                 LineChartData(
+                  clipData: const FlClipData.all(),
                   gridData: const FlGridData(
                     show: true,
                     drawVerticalLine: false,
@@ -1531,15 +1520,17 @@ class _NetWorthTrendCard extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 54,
+                        reservedSize: 60,
                         getTitlesWidget: (double value, TitleMeta meta) {
                           return Padding(
-                            padding: const EdgeInsets.only(right: 4),
+                            padding: const EdgeInsets.only(right: 6),
                             child: Text(
                               MoneyUtils.formatCompactSatang(
                                 (value * 100).round(),
                               ),
+                              maxLines: 1,
                               style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 11,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -1595,12 +1586,15 @@ class _RecentTransactionsCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text(
-                  strings.recentTransactionsTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Text(
+                    strings.recentTransactionsTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: () => context.go('/transactions'),
                   child: Text(strings.viewAll),
