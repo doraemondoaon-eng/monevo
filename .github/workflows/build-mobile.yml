@@ -1,0 +1,85 @@
+name: Build iOS (.ipa) & Android (.apk)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios-ipa:
+    name: Build iPhone App (.ipa)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Prepare iOS project & preserve custom Info.plist
+        run: |
+          cp ios/Runner/Info.plist /tmp/MonevoInfo.plist
+          flutter create . --org com.monevo --project-name monevo --platforms=ios
+          cp /tmp/MonevoInfo.plist ios/Runner/Info.plist
+          rm -f test/widget_test.dart
+
+      - name: Install dependencies & build iOS release (no-codesign)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
+
+      - name: Package Runner.app into MONEVO-iOS.ipa
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r MONEVO-iOS.ipa Payload
+
+      - name: Upload MONEVO-iOS.ipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MONEVO-iOS-ipa
+          path: mobile/build/ios/iphoneos/MONEVO-iOS.ipa
+          retention-days: 30
+
+  build-android-apk:
+    name: Build Android App (.apk)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Prepare Android project & preserve custom AndroidManifest.xml
+        run: |
+          cp android/app/src/main/AndroidManifest.xml /tmp/MonevoAndroidManifest.xml
+          flutter create . --org com.monevo --project-name monevo --platforms=android
+          cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          rm -f test/widget_test.dart
+
+      - name: Build Android release APK
+        run: |
+          flutter pub get
+          flutter build apk --release --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1
+
+      - name: Upload MONEVO-Android.apk Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MONEVO-Android-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
