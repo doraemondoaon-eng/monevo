@@ -6,7 +6,7 @@ class AppConfig {
   /// `--dart-define=API_BASE_URL=http://localhost:3000/api/v1`
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api/v1',
+    defaultValue: 'https://monevo-api.hostless.app/api/v1',
   );
 
   /// Derives the root `/health` URL from [baseUrl].
