@@ -40,5 +40,7 @@ mobile/ios/Pods/
 mobile/ios/.symlinks/
 mobile/ios/Flutter/Generated.xcconfig
 mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/ephemeral/
+**/GeneratedPluginRegistrant.*
 *.keystore
 

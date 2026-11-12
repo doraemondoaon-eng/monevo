@@ -180,13 +180,7 @@ class LocalBackupService {
         ),
       );
 
-    final List<int>? zipped = ZipEncoder().encode(archive);
-    if (zipped == null) {
-      throw const BackupException(
-        'ZIP_ENCODE_FAILED',
-        'Failed to create ZIP backup archive.',
-      );
-    }
+    final List<int> zipped = ZipEncoder().encode(archive);
     return Uint8List.fromList(zipped);
   }
 
@@ -334,8 +328,6 @@ class LocalBackupService {
   Future<RestorePreviewPlan> buildRestorePreview(
     DecodedBackupContainer container,
   ) async {
-    final BackupPayload payload = container.payload;
-
     final List<AccountModel> existingAccounts = await _accountsRepo.getAccounts(
       includeArchived: true,
     );
@@ -684,13 +676,7 @@ class LocalBackupService {
       ),
     );
 
-    final List<int>? encoded = ZipEncoder().encode(archive);
-    if (encoded == null) {
-      throw const BackupException(
-        'IMAGE_ZIP_FAILED',
-        'Could not create image backup ZIP archive.',
-      );
-    }
+    final List<int> encoded = ZipEncoder().encode(archive);
 
     return (
       zipBytes: Uint8List.fromList(encoded),

@@ -17,7 +17,6 @@ import '../../categories/domain/category_model.dart';
 import '../../categories/presentation/categories_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
 import '../domain/transaction_model.dart';
-import 'transaction_form_sheet.dart';
 import 'transaction_tile.dart';
 import 'transactions_controller.dart';
 
@@ -102,15 +101,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             to: exclusiveEnd,
           ),
         );
-  }
-
-  Future<void> _openEditSheet(TransactionModel tx) async {
-    await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => TransactionFormSheet(existing: tx),
-    );
   }
 
   @override
