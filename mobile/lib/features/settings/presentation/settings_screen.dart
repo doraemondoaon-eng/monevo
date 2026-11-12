@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/security/app_lock_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/update/app_update_dialog.dart';
+import '../../../core/update/app_update_service.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../l10n/app_strings.dart';
@@ -85,6 +88,61 @@ class SettingsScreen extends ConsumerWidget {
     }
     nameCtrl.dispose();
     tzCtrl.dispose();
+  }
+
+  Future<void> _checkForUpdatesManually(
+    BuildContext context,
+    WidgetRef ref,
+    AppStrings strings,
+  ) async {
+    final AppUpdateService service = ref.read(appUpdateServiceProvider);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          strings.tr('กำลังตรวจสอบอัปเดต...', 'Checking for updates...'),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    final AppUpdateCheckResult result = await service.checkForUpdate(
+      silent: false,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    messenger.hideCurrentSnackBar();
+    if (result.hasUpdate && result.updateInfo != null) {
+      await AppUpdateDialog.show(
+        context,
+        info: result.updateInfo!,
+        service: service,
+      );
+      return;
+    }
+    if (result.errorMessage != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'ยังตรวจสอบอัปเดตไม่ได้ (ตรวจสอบอินเทอร์เน็ตหรือการเปิด Public ของคลัง)',
+              'Could not check for updates right now.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          strings.tr(
+            'คุณใช้เวอร์ชันล่าสุดอยู่แล้ว (v${AppConfig.appVersion})',
+            'You are already on the latest version (v${AppConfig.appVersion}).',
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _showChangePasswordDialog(
@@ -555,6 +613,33 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // App Version & Auto-Update
+            _SectionHeader(
+              title: strings.tr('อัปเดตแอปพลิเคชัน', 'App Updates'),
+            ),
+            PremiumCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.system_update_rounded,
+                  color: AppColors.primaryEmerald,
+                ),
+                title: Text(
+                  strings.tr('ตรวจสอบอัปเดตแอป', 'Check for Updates'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  strings.tr(
+                    'เวอร์ชันปัจจุบัน v${AppConfig.appVersion} (Build ${AppConfig.appBuildNumber})',
+                    'Current v${AppConfig.appVersion} (Build ${AppConfig.appBuildNumber})',
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _checkForUpdatesManually(context, ref, strings),
               ),
             ),
             const SizedBox(height: 24),

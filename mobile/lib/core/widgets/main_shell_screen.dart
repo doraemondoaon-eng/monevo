@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/transactions/presentation/transaction_form_sheet.dart';
 import '../../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
+import '../update/app_update_dialog.dart';
+import '../update/app_update_service.dart';
 
-class MainShellScreen extends StatelessWidget {
+class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({
     super.key,
     required this.navigationShell,
@@ -14,11 +17,48 @@ class MainShellScreen extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  @override
+  ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
+}
+
+class _MainShellScreenState extends ConsumerState<MainShellScreen> {
+  static bool _checkedThisSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdateOnce();
+    });
+  }
+
+  Future<void> _checkAppUpdateOnce() async {
+    if (_checkedThisSession || !mounted) {
+      return;
+    }
+    _checkedThisSession = true;
+    final AppUpdateService service = ref.read(appUpdateServiceProvider);
+    if (!service.isPlatformSupported) {
+      return;
+    }
+    final AppUpdateCheckResult result = await service.checkForUpdate(
+      silent: true,
+    );
+    if (!mounted || !result.hasUpdate || result.updateInfo == null) {
+      return;
+    }
+    await AppUpdateDialog.show(
+      context,
+      info: result.updateInfo!,
+      service: service,
+    );
+  }
+
   void _onDestinationSelected(int index) {
     HapticFeedback.selectionClick();
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
@@ -45,7 +85,7 @@ class MainShellScreen extends StatelessWidget {
             children: <Widget>[
               NavigationRail(
                 extended: screenWidth >= 1080,
-                selectedIndex: navigationShell.currentIndex,
+                selectedIndex: widget.navigationShell.currentIndex,
                 onDestinationSelected: _onDestinationSelected,
                 leading: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -94,7 +134,7 @@ class MainShellScreen extends StatelessWidget {
                 ],
               ),
               const VerticalDivider(width: 1, thickness: 1),
-              Expanded(child: navigationShell),
+              Expanded(child: widget.navigationShell),
             ],
           ),
         ),
@@ -104,7 +144,7 @@ class MainShellScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: navigationShell,
+        child: widget.navigationShell,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openQuickAddTransaction(context),
@@ -118,7 +158,7 @@ class MainShellScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: _onDestinationSelected,
         destinations: <NavigationDestination>[
           NavigationDestination(

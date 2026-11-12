@@ -27,4 +27,18 @@ class AppConfig {
   static const Duration receiveTimeout = Duration(seconds: 25);
   static const int defaultPageSize = 30;
   static const int defaultAutoLockSeconds = 60;
+
+  static const String appVersion = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: '1.0.0',
+  );
+  static const int appBuildNumber = int.fromEnvironment(
+    'APP_BUILD_NUMBER',
+    defaultValue: 1,
+  );
+  static const String updateManifestUrl = String.fromEnvironment(
+    'UPDATE_MANIFEST_URL',
+    defaultValue:
+        'https://github.com/doraemondoaon-eng/monevo/releases/download/v1.0.0/version.json',
+  );
 }
