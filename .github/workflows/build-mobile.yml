@@ -42,9 +42,14 @@ jobs:
           KEYSTORE_BUNDLE: ${{ secrets.MONEVO_KEYSTORE_BUNDLE }}
         run: |
           cp android/app/src/main/AndroidManifest.xml /tmp/MonevoAndroidManifest.xml
+          cp android/app/src/main/kotlin/com/monevo/monevo/MainActivity.kt /tmp/MonevoMainActivity.kt
+          cp android/app/src/main/res/xml/monevo_update_paths.xml /tmp/monevo_update_paths.xml
           rm -rf android
           flutter create . --org com.monevo --project-name monevo --platforms=android
           cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cp /tmp/monevo_update_paths.xml android/app/src/main/res/xml/monevo_update_paths.xml
+          find android/app/src/main -name "MainActivity.kt" -exec cp /tmp/MonevoMainActivity.kt {} \;
           rm -f test/widget_test.dart
           flutter pub get
           python3 - << 'EOF'
@@ -159,82 +164,6 @@ jobs:
                               print(f"Upgraded compileSdk to 36 in {bg}")
                       except Exception:
                           pass
-
-          xml_dir = pathlib.Path("android/app/src/main/res/xml")
-          xml_dir.mkdir(parents=True, exist_ok=True)
-          (xml_dir / "monevo_update_paths.xml").write_text(
-              '<?xml version="1.0" encoding="utf-8"?>\n'
-              "<paths>\n"
-              '    <cache-path name="cache_updates" path="." />\n'
-              '    <files-path name="files_updates" path="." />\n'
-              "</paths>\n"
-          )
-
-          main_activity_kt = '''package com.monevo.monevo
-
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
-import androidx.core.content.FileProvider
-import io.flutter.embedding.android.FlutterFragmentActivity
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import java.io.File
-
-class MainActivity : FlutterFragmentActivity() {
-    private val channelName = "com.monevo.app/updater"
-
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "installApk" -> {
-                        val path = call.argument<String>("path")
-                        if (path.isNullOrBlank()) {
-                            result.success("FAILED")
-                            return@setMethodCallHandler
-                        }
-                        val file = File(path)
-                        if (!file.exists()) {
-                            result.success("FAILED")
-                            return@setMethodCallHandler
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                            !packageManager.canRequestPackageInstalls()
-                        ) {
-                            val permIntent = Intent(
-                                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                                Uri.parse("package:$packageName")
-                            ).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            startActivity(permIntent)
-                            result.success("PERMISSION_REQUIRED")
-                            return@setMethodCallHandler
-                        }
-                        val contentUri = FileProvider.getUriForFile(
-                            this,
-                            "$packageName.monevo_updater_provider",
-                            file
-                        )
-                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(contentUri, "application/vnd.android.package-archive")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        startActivity(installIntent)
-                        result.success("LAUNCHED")
-                    }
-                    else -> result.notImplemented()
-                }
-            }
-    }
-}
-'''
-          for kt in pathlib.Path("android/app/src/main").rglob("MainActivity.kt"):
-              kt.write_text(main_activity_kt)
           EOF
 
       - name: Apply custom MONEVO app launcher icon (legacy + adaptive)
