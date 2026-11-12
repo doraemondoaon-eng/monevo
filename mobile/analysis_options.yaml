@@ -1,0 +1,19 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-raw-types: true
+  errors:
+    missing_required_param: error
+    missing_return: error
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_locals: true
+    prefer_single_quotes: true
+    sort_child_properties_last: true
+    use_build_context_synchronously: true
+    avoid_print: true

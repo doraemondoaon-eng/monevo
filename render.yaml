@@ -1,0 +1,41 @@
+# Render Infrastructure-as-Code Blueprint
+# Note: Use Neon (https://neon.tech) for PostgreSQL because Render's free Postgres expires after 30 days.
+services:
+  - type: web
+    name: monevo-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false # Paste your Neon pooled/direct connection string in Render dashboard
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DATABASE_POOL_MAX
+        value: "5"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: "900"
+      - key: REFRESH_TOKEN_TTL_DAYS
+        value: "30"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: RUN_MIGRATIONS_ON_START
+        value: "true"
+      - key: ENABLE_API_DOCS
+        value: "false"
+

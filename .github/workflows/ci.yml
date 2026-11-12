@@ -1,0 +1,78 @@
+name: MONEVO CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (TypeScript / Fastify / PGlite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  migrate-production:
+    name: Apply DB Migrations (Neon)
+    needs: backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if DATABASE_URL secret is not configured
+        if: env.DATABASE_URL == ''
+        run: echo "DATABASE_URL secret not set; skipping remote migration (RUN_MIGRATIONS_ON_START handles it on Render)."
+      - uses: actions/setup-node@v4
+        if: env.DATABASE_URL != ''
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - if: env.DATABASE_URL != ''
+        run: npm ci
+      - if: env.DATABASE_URL != ''
+        run: npx tsx src/db/migrate.ts
+        env:
+          DATABASE_SSL: "true"
+          JWT_ACCESS_SECRET: "ci-migration-placeholder-secret-at-least-32-chars"
+          JWT_REFRESH_SECRET: "ci-migration-placeholder-secret-at-least-32-chars-2"
+
+  flutter:
+    name: Mobile & Web (Flutter Analyze & Test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate platform folders if not committed
+        run: |
+          flutter create . --org com.monevo --project-name monevo --platforms=android,ios,web
+          rm -f test/widget_test.dart
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+

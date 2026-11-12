@@ -1,0 +1,36 @@
+# Local development database only. Production uses Neon (see docs/DEPLOYMENT.md).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: monevo
+      POSTGRES_PASSWORD: monevo_dev_password
+      POSTGRES_DB: monevo
+    ports:
+      - "5432:5432"
+    volumes:
+      - monevo-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monevo -d monevo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    profiles: ["full"] # start with: docker compose --profile full up
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgres://monevo:monevo_dev_password@db:5432/monevo
+      DATABASE_SSL: "false"
+      RUN_MIGRATIONS_ON_START: "true"
+    ports:
+      - "3000:3000"
+
+volumes:
+  monevo-pg:
+
