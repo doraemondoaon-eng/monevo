@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
 import '../../../core/widgets/state_views.dart';
@@ -120,33 +122,20 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
 
   Future<void> _handleDelete(AccountModel account) async {
     final AppStrings strings = AppStrings.of(context);
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) {
-        return AlertDialog(
-          title: Text(strings.delete),
-          content: Text(
-            strings.tr(
-              'ต้องการลบบัญชี "${account.name}" ใช่หรือไม่?',
-              'Delete account "${account.name}"?',
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(strings.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
-              child: Text(strings.delete),
-            ),
-          ],
-        );
-      },
+    final bool confirmed = await MonevoAlert.showConfirm(
+      context,
+      title: strings.delete,
+      message: strings.tr(
+        'ต้องการลบบัญชี "${account.name}" ใช่หรือไม่?',
+        'Delete account "${account.name}"?',
+      ),
+      confirmLabel: strings.delete,
+      cancelLabel: strings.cancel,
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
     );
 
-    if (confirmed != true || !mounted) {
+    if (!confirmed || !mounted) {
       return;
     }
 
@@ -159,6 +148,16 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
         return;
       }
       Navigator.of(context).pop();
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showToast(
+          targetContext,
+          message: strings.tr('ลบบัญชีเรียบร้อยแล้ว', 'Account deleted successfully'),
+          type: MonevoAlertType.info,
+          icon: Icons.delete_outline_rounded,
+        );
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;

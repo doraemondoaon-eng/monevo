@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../l10n/app_strings.dart';
 import '../../accounts/domain/account_model.dart';
 import '../../accounts/presentation/accounts_controller.dart';
@@ -115,12 +116,16 @@ class TransactionTile extends ConsumerWidget {
         ? transaction.amount
         : (isIncome ? transaction.amount : -transaction.amount);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    return BouncyTap(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
           children: <Widget>[
             Container(
               width: 46,
@@ -200,6 +205,8 @@ class TransactionTile extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

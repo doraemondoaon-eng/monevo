@@ -8,6 +8,7 @@ import '../../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../update/app_update_dialog.dart';
 import '../update/app_update_service.dart';
+import 'monevo_feedback.dart';
 
 class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({
@@ -89,13 +90,16 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 onDestinationSelected: _onDestinationSelected,
                 leading: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: FloatingActionButton(
-                    onPressed: () => _openQuickAddTransaction(context),
-                    backgroundColor: AppColors.primaryEmerald,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    tooltip: strings.addTransaction,
-                    child: const Icon(Icons.add_rounded, size: 24),
+                  child: BouncyTap(
+                    onTap: () => _openQuickAddTransaction(context),
+                    child: FloatingActionButton(
+                      onPressed: null,
+                      backgroundColor: AppColors.primaryEmerald,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      tooltip: strings.addTransaction,
+                      child: const Icon(Icons.add_rounded, size: 24),
+                    ),
                   ),
                 ),
                 destinations: <NavigationRailDestination>[
@@ -146,15 +150,18 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         bottom: false,
         child: widget.navigationShell,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openQuickAddTransaction(context),
-        backgroundColor: AppColors.primaryEmerald,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        icon: const Icon(Icons.add_rounded, size: 24),
-        label: Text(
-          strings.addTransaction,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+      floatingActionButton: BouncyTap(
+        onTap: () => _openQuickAddTransaction(context),
+        child: FloatingActionButton.extended(
+          onPressed: null,
+          backgroundColor: AppColors.primaryEmerald,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          icon: const Icon(Icons.add_rounded, size: 24),
+          label: Text(
+            strings.addTransaction,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(

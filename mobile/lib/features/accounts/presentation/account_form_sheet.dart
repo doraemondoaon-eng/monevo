@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/money_utils.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../l10n/app_strings.dart';
 import '../../dashboard/presentation/dashboard_controller.dart';
 import '../domain/account_model.dart';
@@ -129,13 +131,28 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
         return;
       }
       Navigator.of(context).pop(saved);
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showSuccess(
+          targetContext,
+          title: widget.existing == null
+              ? 'สร้างบัญชีใหม่สำเร็จ!'
+              : 'อัปเดตข้อมูลบัญชีเรียบร้อย!',
+          subtitle: saved.name,
+          amountFormatted: MoneyUtils.formatSatang(saved.balance),
+          accountName: saved.type.name,
+        );
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.localizedMessage(strings))),
+      MonevoAlert.showError(
+        context,
+        title: 'บันทึกบัญชีไม่สำเร็จ',
+        message: e.localizedMessage(strings),
       );
     }
   }
@@ -394,18 +411,25 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _saving ? null : _submit,
-                child: _saving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(strings.save),
+              BouncyTap(
+                onTap: _saving ? null : _submit,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: null,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(strings.save),
+                  ),
+                ),
               ),
             ],
           ),

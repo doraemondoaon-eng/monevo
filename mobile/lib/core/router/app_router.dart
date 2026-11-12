@@ -34,11 +34,15 @@ class _RouterRefreshChangeNotifier extends ChangeNotifier {
   }
 }
 
+final GlobalKey<NavigatorState> rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
   final _RouterRefreshChangeNotifier refreshNotifier =
       _RouterRefreshChangeNotifier(ref);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/wakeup',
     refreshListenable: refreshNotifier,
     redirect: (BuildContext context, GoRouterState state) {

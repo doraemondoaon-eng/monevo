@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../l10n/app_strings.dart';
 import '../../accounts/domain/account_model.dart';
 import '../../accounts/presentation/account_form_sheet.dart';
@@ -444,15 +446,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final AppStrings strings = AppStrings.of(context);
     final int? satang = MoneyUtils.parseToSatang(_amountInput);
     if (satang == null || satang <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            strings.tr(
-              'กรุณาระบุจำนวนเงินที่มากกว่า 0',
-              'Please enter an amount greater than 0',
-            ),
-          ),
+      MonevoAlert.showToast(
+        context,
+        message: strings.tr(
+          'กรุณาระบุจำนวนเงินที่มากกว่า 0',
+          'Please enter an amount greater than 0',
         ),
+        type: MonevoAlertType.warning,
       );
       return;
     }
@@ -460,30 +460,26 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final String? effectiveFromId =
         _accountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
     if (effectiveFromId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            strings.tr(
-              'กรุณาสร้างและเลือกบัญชีก่อนบันทึกรายการ',
-              'Please create and select an account first',
-            ),
-          ),
+      MonevoAlert.showToast(
+        context,
+        message: strings.tr(
+          'กรุณาสร้างและเลือกบัญชีก่อนบันทึกรายการ',
+          'Please create and select an account first',
         ),
+        type: MonevoAlertType.warning,
       );
       return;
     }
 
     if (_type == TransactionType.transfer) {
       if (_toAccountId == null || _toAccountId == effectiveFromId) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strings.tr(
-                'กรุณาเลือกบัญชีปลายทางที่ต่างจากบัญชีต้นทาง',
-                'Please select a different destination account',
-              ),
-            ),
+        MonevoAlert.showToast(
+          context,
+          message: strings.tr(
+            'กรุณาเลือกบัญชีปลายทางที่ต่างจากบัญชีต้นทาง',
+            'Please select a different destination account',
           ),
+          type: MonevoAlertType.warning,
         );
         return;
       }
@@ -548,14 +544,49 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       if (!mounted) {
         return;
       }
+
+      final AccountsState accountsState = ref.read(accountsControllerProvider);
+      final CategoriesState categoriesState =
+          ref.read(categoriesControllerProvider);
+      final AccountModel? acct = accountsState.findById(savedTx.accountId);
+      final CategoryModel? cat = categoriesState.findById(savedTx.categoryId);
+
+      final String actionTitle = widget.existing == null
+          ? (_type == TransactionType.expense
+              ? 'บันทึกรายจ่ายเรียบร้อย!'
+              : _type == TransactionType.income
+                  ? 'บันทึกรายรับเรียบร้อย!'
+                  : 'บันทึกการโอนเงินเรียบร้อย!')
+          : 'อัปเดตรายการเรียบร้อย!';
+
+      final Color amountColor = _type == TransactionType.income
+          ? AppColors.income
+          : _type == TransactionType.expense
+              ? AppColors.expense
+              : AppColors.transfer;
+
       Navigator.of(context).pop(true);
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showSuccess(
+          targetContext,
+          title: actionTitle,
+          amountFormatted: MoneyUtils.formatSatang(satang),
+          amountColor: amountColor,
+          categoryName: cat?.name,
+          accountName: acct?.name,
+        );
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.localizedMessage(strings))),
+      MonevoAlert.showError(
+        context,
+        title: 'บันทึกไม่สำเร็จ',
+        message: e.localizedMessage(strings),
       );
     }
   }
@@ -867,19 +898,30 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             const SizedBox(height: 14),
             _buildLocalAttachmentSection(theme, strings),
             const SizedBox(height: 18),
-            FilledButton(
-              onPressed: _saving ? null : () => _submit(accounts),
-              style: FilledButton.styleFrom(backgroundColor: accentColor),
-              child: _saving
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(strings.save),
+            BouncyTap(
+              onTap: _saving ? null : () => _submit(accounts),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    disabledBackgroundColor: accentColor,
+                    disabledForegroundColor: Colors.white,
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(strings.save),
+                ),
+              ),
             ),
           ],
         ),
@@ -1135,18 +1177,23 @@ class _AmountKeypad extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: SizedBox(
                       height: 46,
-                      child: Material(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withAlpha(90),
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
+                      child: BouncyTap(
+                        onTap: () => onKeyTap(k),
+                        pressedScale: 0.90,
+                        duration: const Duration(milliseconds: 90),
+                        child: Material(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withAlpha(90),
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () => onKeyTap(k),
-                          child: Center(
-                            child: Text(
-                              k,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: null,
+                            child: Center(
+                              child: Text(
+                                k,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
@@ -1165,19 +1212,24 @@ class _AmountKeypad extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: SizedBox(
                   height: 46,
-                  child: Material(
-                    color: theme.colorScheme.surfaceContainerHighest.withAlpha(
-                      90,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
+                  child: BouncyTap(
+                    onTap: () => onKeyTap('.'),
+                    pressedScale: 0.90,
+                    duration: const Duration(milliseconds: 90),
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(
+                        90,
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () => onKeyTap('.'),
-                      child: Center(
-                        child: Text(
-                          '.',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: null,
+                        child: Center(
+                          child: Text(
+                            '.',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -1192,19 +1244,24 @@ class _AmountKeypad extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: SizedBox(
                   height: 46,
-                  child: Material(
-                    color: theme.colorScheme.surfaceContainerHighest.withAlpha(
-                      90,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
+                  child: BouncyTap(
+                    onTap: () => onKeyTap('0'),
+                    pressedScale: 0.90,
+                    duration: const Duration(milliseconds: 90),
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(
+                        90,
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () => onKeyTap('0'),
-                      child: Center(
-                        child: Text(
-                          '0',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: null,
+                        child: Center(
+                          child: Text(
+                            '0',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),

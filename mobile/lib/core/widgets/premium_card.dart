@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'monevo_feedback.dart';
 
 class PremiumCard extends StatelessWidget {
   const PremiumCard({
@@ -40,12 +41,15 @@ class PremiumCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      content = Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: content,
+      content = BouncyTap(
+        onTap: onTap,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: null,
+            child: content,
+          ),
         ),
       );
     }
