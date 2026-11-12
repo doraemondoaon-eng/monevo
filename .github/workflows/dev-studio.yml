@@ -1,0 +1,85 @@
+name: Deploy MONEVO Dev Studio (Web Simulator)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'dev-studio/**'
+      - '.github/workflows/dev-studio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build Flutter Web Simulator & Deploy Dev Studio
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build MONEVO Flutter Web Simulator
+        working-directory: mobile
+        run: |
+          rm -rf web
+          flutter create . --org com.monevo --project-name monevo --platforms=web
+          flutter pub get
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          BUILD_NUM="${{ github.run_number }}"
+          VERSION_NAME="1.0.${BUILD_NUM}-web"
+          flutter build web --release \
+            --base-href "/${REPO_NAME}/app/" \
+            --no-tree-shake-icons \
+            --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1 \
+            --dart-define=APP_VERSION="$VERSION_NAME" \
+            --dart-define=APP_BUILD_NUMBER="$BUILD_NUM"
+
+      - name: Assemble Dev Studio Pages Artifact
+        run: |
+          rm -rf _site
+          mkdir -p _site/app
+          cp dev-studio/index.html _site/index.html
+          cp -r mobile/build/web/* _site/app/
+          export COMMIT_MSG="$(git log -1 --pretty=%s)"
+          export COMMIT_SHA="${{ github.sha }}"
+          export BUILD_NUM="${{ github.run_number }}"
+          python3 - << 'EOF'
+          import datetime, json, os, pathlib
+          meta = {
+              "versionName": f"1.0.{os.environ['BUILD_NUM']}-web",
+              "buildNumber": int(os.environ["BUILD_NUM"]),
+              "commitSha": os.environ["COMMIT_SHA"],
+              "commitMessage": os.environ.get("COMMIT_MSG", ""),
+              "builtAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          pathlib.Path("_site/dev-meta.json").write_text(
+              json.dumps(meta, ensure_ascii=False, indent=2)
+          )
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

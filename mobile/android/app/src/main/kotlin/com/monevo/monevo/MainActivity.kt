@@ -60,3 +60,4 @@ class MainActivity : FlutterFragmentActivity() {
             }
     }
 }
+

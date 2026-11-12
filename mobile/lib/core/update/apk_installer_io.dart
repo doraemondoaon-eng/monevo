@@ -76,3 +76,4 @@ class _AndroidApkInstallerDriver implements ApkInstallerDriver {
     }
   }
 }
+

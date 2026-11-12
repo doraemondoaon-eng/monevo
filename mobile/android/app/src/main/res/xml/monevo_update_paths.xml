@@ -3,3 +3,4 @@
     <cache-path name="cache_updates" path="." />
     <files-path name="files_updates" path="." />
 </paths>
+

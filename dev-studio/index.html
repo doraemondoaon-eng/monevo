@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MONEVO Dev Studio — UX/UI Simulator &amp; Instant Publisher</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #0f172a;
+      --panel-2: #162036;
+      --border: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --emerald: #10b981;
+      --emerald-strong: #059669;
+      --teal: #14b8a6;
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, #0c2627 0%, var(--bg) 52%);
+      color: var(--text);
+      font-family: 'Noto Sans Thai', 'Sarabun', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 22px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--emerald), #0d9488);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: #042f2e;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill-group {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .pill-btn {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 11px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:hover { color: var(--text); }
+    .pill-btn.active {
+      background: var(--panel-2);
+      color: var(--emerald);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 13px;
+      border-radius: 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn:hover { background: #1e293b; border-color: #334155; }
+    .btn:active { transform: scale(0.98); }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-strong));
+      color: #03261f;
+      border-color: transparent;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.28);
+    }
+    .btn.primary:hover { filter: brightness(1.06); }
+    .btn.primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn.blue {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
+    main.workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      gap: 20px;
+      padding: 20px 24px;
+      max-width: 1560px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1080px) {
+      main.workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: auto;
+      min-height: 760px;
+      position: relative;
+    }
+
+    .stage-meta {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .device-scale-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      transition: width 0.2s ease, height 0.2s ease;
+    }
+
+    .device-bezel {
+      background: #020617;
+      border: 6px solid #1e293b;
+      border-radius: 44px;
+      padding: 14px;
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.65),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      transform-origin: top center;
+      transition: transform 0.2s ease, border-radius 0.2s ease;
+      position: relative;
+    }
+
+    .device-bezel.tablet {
+      border-radius: 26px;
+      padding: 16px;
+    }
+
+    .device-screen {
+      position: relative;
+      overflow: hidden;
+      border-radius: 32px;
+      background: #ffffff;
+    }
+
+    .device-bezel.tablet .device-screen {
+      border-radius: 14px;
+    }
+
+    .device-notch {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 96px;
+      height: 20px;
+      background: #020617;
+      border-radius: 999px;
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0.92;
+    }
+
+    .device-bezel.tablet .device-notch { display: none; }
+
+    iframe#appFrame {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #f4f6f9;
+    }
+
+    .safe-area-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      display: none;
+    }
+
+    .safe-area-overlay.visible { display: block; }
+    .safe-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 36px;
+      background: rgba(244, 63, 94, 0.14);
+      border-bottom: 1px dashed rgba(244, 63, 94, 0.7);
+    }
+    .safe-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 24px;
+      background: rgba(59, 130, 246, 0.14);
+      border-top: 1px dashed rgba(59, 130, 246, 0.7);
+    }
+
+    aside.sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 14.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card p, .card li {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--emerald);
+    }
+
+    .status-chip.warn {
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--warning);
+    }
+
+    .status-chip.err {
+      background: rgba(244, 63, 94, 0.14);
+      color: var(--danger);
+    }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.7);
+      font-size: 12.5px;
+    }
+    .kv-row:last-child { border-bottom: 0; }
+    .kv-label { color: var(--muted); }
+    .kv-val { color: var(--text); font-weight: 700; text-align: right; word-break: break-word; }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    input:focus { border-color: var(--emerald); }
+
+    .build-log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text);
+      display: none;
+    }
+    .build-log-box.visible { display: block; }
+
+    details summary {
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--teal);
+      user-select: none;
+    }
+
+    code {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #a7f3d0;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge">M</div>
+      <div>
+        <h1>MONEVO Dev Studio</h1>
+        <p>จำลอง UX/UI แอปจริงบนเบราว์เซอร์ &amp; ศูนย์กดอัปโหลดขึ้นมือถือทันที</p>
+      </div>
+    </div>
+
+    <div class="toolbar-controls">
+      <div class="pill-group" id="devicePresets">
+        <button class="pill-btn active" data-w="360" data-h="800" data-tablet="0">Android (360×800)</button>
+        <button class="pill-btn" data-w="412" data-h="915" data-tablet="0">S24 Ultra (412×915)</button>
+        <button class="pill-btn" data-w="393" data-h="852" data-tablet="0">iPhone 16 Pro</button>
+        <button class="pill-btn" data-w="900" data-h="680" data-tablet="1">Tablet / Wide</button>
+      </div>
+
+      <div class="pill-group" id="zoomPresets">
+        <button class="pill-btn" data-zoom="0.75">75%</button>
+        <button class="pill-btn active" data-zoom="0.85">85%</button>
+        <button class="pill-btn" data-zoom="1">100%</button>
+      </div>
+
+      <button class="btn" id="toggleSafeBtn" type="button">📏 Safe Area</button>
+      <button class="btn" id="reloadFrameBtn" type="button">🔄 โหลดใหม่</button>
+      <a class="btn" href="./app/" target="_blank" rel="noopener">↗️ เปิดเต็มจอ</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage">
+      <div class="stage-meta">
+        <span>📲 <b>ตัวจำลองแอปจริง (Flutter Web Live Engine)</b> — ลากขึ้นลงด้วยเมาส์ได้เหมือนแตะจอมือถือจริง</span>
+        <span id="frameDimsLabel">ขนาดหน้าจอจำลอง: 360 × 800 px (ซูม 85%)</span>
+      </div>
+
+      <div class="device-scale-wrapper" id="scaleWrapper">
+        <div class="device-bezel" id="deviceBezel">
+          <div class="device-notch"></div>
+          <div class="device-screen" id="deviceScreen" style="width: 360px; height: 800px;">
+            <iframe id="appFrame" src="./app/" title="MONEVO Live UX/UI Simulator"></iframe>
+            <div class="safe-area-overlay" id="safeOverlay">
+              <div class="safe-top"></div>
+              <div class="safe-bottom"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="card">
+        <h2>
+          <span>🚀 อัปโหลดงานขึ้นมือถือทันที</span>
+          <span class="status-chip" id="publishBadge">พร้อมสั่งงาน</span>
+        </h2>
+        <p style="margin-top: 0;">
+          เมื่อตรวจสอบ UX/UI ในกรอบจำลองทางซ้ายจนพอใจแล้ว กดปุ่มด้านล่างเพื่อสั่งสร้างไฟล์ <b>MONEVO.apk</b> เวอร์ชันใหม่ทันที (มือถือจะเด้งแจ้งอัปเดตอัตโนมัติในแอป)
+        </p>
+
+        <div class="stack">
+          <button class="btn primary" id="publishApkBtn" type="button" style="justify-content: center; padding: 12px 16px; font-size: 14px;">
+            🚀 กดอัปโหลด &amp; ออกอัปเดต APK เข้ามือถือ
+          </button>
+
+          <button class="btn blue" id="rebuildWebBtn" type="button" style="justify-content: center;">
+            🌐 รีเฟรชตัวจำลองเว็บให้ตรงโค้ดล่าสุด
+          </button>
+
+          <div class="build-log-box" id="buildLogBox"></div>
+
+          <details id="tokenDetails">
+            <summary>🔐 ตั้งค่าสิทธิ์ผู้พัฒนา (GitHub Token — ทำครั้งเดียว)</summary>
+            <div class="stack" style="margin-top: 10px;">
+              <p style="margin: 0; font-size: 12px;">
+                ใส่ Fine-grained Personal Access Token (สิทธิ์ <code>Actions: Read &amp; write</code> ของคลัง <code>monevo</code>) เพื่อเปิดปุ่มสั่งอัปโหลดจากหน้านี้ (เก็บปลอดภัยเฉพาะในเบราว์เซอร์ของคุณเท่านั้น)
+              </p>
+              <input id="patInput" type="password" placeholder="วาง github_pat_... ที่นี่" />
+              <div style="display: flex; gap: 8px;">
+                <button class="btn" id="savePatBtn" type="button" style="flex: 1; justify-content: center;">💾 บันทึก Token</button>
+                <a class="btn" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">สร้าง Token ↗</a>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span>ℹ️ ข้อมูลเวอร์ชันที่แสดงอยู่</span>
+          <span class="status-chip" id="apiHealthChip">เช็ก API...</span>
+        </h2>
+        <div class="kv-row">
+          <span class="kv-label">เวอร์ชันเว็บจำลอง</span>
+          <span class="kv-val" id="metaVersion">กำลังโหลด...</span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label">การแก้ไขล่าสุด</span>
+          <span class="kv-val" id="metaCommit">-</span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label">สร้างเมื่อ</span>
+          <span class="kv-val" id="metaTime">-</span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label">API Server</span>
+          <span class="kv-val">monevo-api.hostless.app</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span>📦 ลิ้งค์ติดตั้ง &amp; เครื่องมือด่วน</span></h2>
+        <div class="stack">
+          <a class="btn" href="https://github.com/doraemondoaon-eng/monevo/releases/download/v1.0.0/MONEVO.apk" target="_blank" rel="noopener" style="justify-content: space-between;">
+            <span>📥 ดาวน์โหลด MONEVO.apk ล่าสุด</span>
+            <span>↗</span>
+          </a>
+          <button class="btn" id="copyApkBtn" type="button" style="justify-content: space-between;">
+            <span>🔗 คัดลอกลิ้งค์ดาวน์โหลด APK</span>
+            <span id="copyStatus">Copy</span>
+          </button>
+          <a class="btn" href="https://github.com/doraemondoaon-eng/monevo/actions" target="_blank" rel="noopener" style="justify-content: space-between;">
+            <span>⚙️ ดูประวัติการ Build บน GitHub Actions</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const REPO_OWNER = 'doraemondoaon-eng';
+    const REPO_NAME = 'monevo';
+    const APK_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/v1.0.0/MONEVO.apk`;
+    const PAT_STORAGE_KEY = 'monevo_dev_studio_gh_pat';
+
+    let currentW = 360;
+    let currentH = 800;
+    let currentZoom = 0.85;
+    let isTablet = false;
+    let pollTimer = null;
+
+    const deviceBezel = document.getElementById('deviceBezel');
+    const deviceScreen = document.getElementById('deviceScreen');
+    const scaleWrapper = document.getElementById('scaleWrapper');
+    const frameDimsLabel = document.getElementById('frameDimsLabel');
+    const appFrame = document.getElementById('appFrame');
+    const safeOverlay = document.getElementById('safeOverlay');
+    const buildLogBox = document.getElementById('buildLogBox');
+    const publishBadge = document.getElementById('publishBadge');
+    const patInput = document.getElementById('patInput');
+
+    function applyFrameGeometry() {
+      deviceScreen.style.width = currentW + 'px';
+      deviceScreen.style.height = currentH + 'px';
+      deviceBezel.classList.toggle('tablet', isTablet);
+      deviceBezel.style.transform = `scale(${currentZoom})`;
+
+      const bezelPad = isTablet ? 44 : 40;
+      scaleWrapper.style.width = Math.round((currentW + bezelPad) * currentZoom) + 'px';
+      scaleWrapper.style.height = Math.round((currentH + bezelPad) * currentZoom) + 'px';
+      frameDimsLabel.textContent = `ขนาดหน้าจอจำลอง: ${currentW} × ${currentH} px (ซูม ${Math.round(currentZoom * 100)}%)`;
+    }
+
+    document.querySelectorAll('#devicePresets .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#devicePresets .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentW = Number(btn.dataset.w);
+        currentH = Number(btn.dataset.h);
+        isTablet = btn.dataset.tablet === '1';
+        applyFrameGeometry();
+      });
+    });
+
+    document.querySelectorAll('#zoomPresets .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#zoomPresets .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentZoom = Number(btn.dataset.zoom);
+        applyFrameGeometry();
+      });
+    });
+
+    document.getElementById('toggleSafeBtn').addEventListener('click', () => {
+      safeOverlay.classList.toggle('visible');
+    });
+
+    document.getElementById('reloadFrameBtn').addEventListener('click', () => {
+      appFrame.src = './app/?t=' + Date.now();
+    });
+
+    document.getElementById('copyApkBtn').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(APK_URL);
+      document.getElementById('copyStatus').textContent = 'คัดลอกแล้ว ✓';
+      setTimeout(() => { document.getElementById('copyStatus').textContent = 'Copy'; }, 2000);
+    });
+
+    const savedPat = localStorage.getItem(PAT_STORAGE_KEY) || '';
+    if (savedPat) {
+      patInput.value = savedPat;
+    }
+
+    document.getElementById('savePatBtn').addEventListener('click', () => {
+      const val = patInput.value.trim();
+      if (val) {
+        localStorage.setItem(PAT_STORAGE_KEY, val);
+        showLog('✅ บันทึก Token สำหรับผู้พัฒนาเรียบร้อยแล้ว กดปุ่มอัปโหลดได้เลย!', 'ok');
+      } else {
+        localStorage.removeItem(PAT_STORAGE_KEY);
+        showLog('🗑️ ลบ Token ออกจากเบราว์เซอร์แล้ว', 'warn');
+      }
+    });
+
+    function showLog(html, tone) {
+      buildLogBox.classList.add('visible');
+      buildLogBox.innerHTML = html;
+      publishBadge.className = 'status-chip' + (tone === 'warn' ? ' warn' : tone === 'err' ? ' err' : '');
+    }
+
+    async function dispatchWorkflow(workflowFile, label) {
+      const pat = (localStorage.getItem(PAT_STORAGE_KEY) || patInput.value || '').trim();
+      if (!pat) {
+        document.getElementById('tokenDetails').open = true;
+        publishBadge.textContent = 'ต้องใส่ Token';
+        showLog('⚠️ กรุณาวาง <b>GitHub Token</b> ด้านล่างก่อนกดสั่งอัปโหลด (ตั้งค่าแค่ครั้งเดียว)', 'warn');
+        patInput.focus();
+        return;
+      }
+
+      publishBadge.textContent = 'กำลังสั่งงาน...';
+      showLog(`⏳ กำลังส่งคำสั่ง <b>${label}</b> ไปยังเซิร์ฟเวอร์...`, 'warn');
+
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/dispatches`,
+          {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/vnd.github+json',
+              'Authorization': `Bearer ${pat}`,
+              'X-GitHub-Api-Version': '2022-11-28',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ref: 'main' }),
+          }
+        );
+
+        if (res.status !== 204) {
+          const text = await res.text();
+          publishBadge.textContent = 'สั่งไม่สำเร็จ';
+          showLog(`❌ สั่งงานไม่สำเร็จ (${res.status}): ตรวจสอบว่า Token มีสิทธิ์ <code>Actions: Read and write</code><br><small>${text}</small>`, 'err');
+          return;
+        }
+
+        publishBadge.textContent = 'กำลัง Build...';
+        showLog(`🚀 ส่งคำสั่ง <b>${label}</b> สำเร็จ! กำลังติดตามสถานะอัตโนมัติ...`, 'warn');
+        startPollingWorkflow(workflowFile, label, pat);
+      } catch (e) {
+        publishBadge.textContent = 'เชื่อมต่อไม่ได้';
+        showLog(`❌ เชื่อมต่อ GitHub ไม่ได้: ${e.message}`, 'err');
+      }
+    }
+
+    function startPollingWorkflow(workflowFile, label, pat) {
+      if (pollTimer) clearInterval(pollTimer);
+      const startedAt = Date.now();
+      let attempts = 0;
+
+      const check = async () => {
+        attempts++;
+        try {
+          const r = await fetch(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowFile}/runs?per_page=1&_t=${Date.now()}`,
+            {
+              headers: {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `Bearer ${pat}`,
+              },
+            }
+          );
+          if (!r.ok) return;
+          const data = await r.json();
+          const run = data.workflow_runs && data.workflow_runs[0];
+          if (!run) return;
+
+          const mins = Math.floor((Date.now() - startedAt) / 60000);
+          const secs = Math.floor(((Date.now() - startedAt) % 60000) / 1000);
+          const elapsed = `${mins}:${String(secs).padStart(2, '0')}`;
+
+          if (run.status !== 'completed') {
+            publishBadge.textContent = run.status === 'in_progress' ? 'กำลังสร้าง...' : 'รอคิว...';
+            showLog(`⚙️ <b>${label}</b> กำลังทำงาน (${elapsed}) — สถานะ: <code>${run.status}</code><br><a href="${run.html_url}" target="_blank" style="color:#93c5fd;">ดูรายละเอียด ↗</a>`, 'warn');
+          } else {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            if (run.conclusion === 'success') {
+              publishBadge.textContent = 'สำเร็จ ✓';
+              const extra = workflowFile === 'build-mobile.yml'
+                ? 'เปิดแอป MONEVO บนมือถือเพื่อรับอัปเดตอัตโนมัติได้เลย!'
+                : 'รีเฟรชหน้าจำลองเพื่อดู UX/UI ล่าสุดได้เลย!';
+              showLog(`✅ <b>${label}</b> เสร็จสมบูรณ์แล้ว! (${elapsed})<br>${extra}`, 'ok');
+              if (workflowFile === 'dev-studio.yml') {
+                loadMeta();
+                appFrame.src = './app/?t=' + Date.now();
+              }
+            } else {
+              publishBadge.textContent = 'Build พัง';
+              showLog(`❌ <b>${label}</b> ไม่สำเร็จ (${run.conclusion}) <a href="${run.html_url}" target="_blank" style="color:#fda4af;">เปิดดูสาเหตุ ↗</a>`, 'err');
+            }
+          }
+        } catch (_) {}
+        if (attempts > 90 && pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      };
+
+      setTimeout(check, 3500);
+      pollTimer = setInterval(check, 8000);
+    }
+
+    document.getElementById('publishApkBtn').addEventListener('click', () => {
+      dispatchWorkflow('build-mobile.yml', 'สร้างและอัปโหลด MONEVO.apk เข้ามือถือ');
+    });
+    document.getElementById('rebuildWebBtn').addEventListener('click', () => {
+      dispatchWorkflow('dev-studio.yml', 'อัปเดตตัวจำลองเว็บ Dev Studio');
+    });
+
+    async function loadMeta() {
+      try {
+        const res = await fetch('./dev-meta.json?t=' + Date.now());
+        if (!res.ok) throw new Error('no meta');
+        const m = await res.json();
+        document.getElementById('metaVersion').textContent = `${m.versionName || '-'} (Build ${m.buildNumber || '-'})`;
+        document.getElementById('metaCommit').textContent = `${(m.commitSha || '').slice(0, 7)} — ${m.commitMessage || ''}`;
+        document.getElementById('metaTime').textContent = m.builtAt ? new Date(m.builtAt).toLocaleString('th-TH') : '-';
+      } catch (_) {
+        document.getElementById('metaVersion').textContent = 'พร้อมใช้งาน';
+      }
+    }
+
+    async function checkApiHealth() {
+      const chip = document.getElementById('apiHealthChip');
+      try {
+        const r = await fetch('https://monevo-api.hostless.app/health', { mode: 'cors' });
+        if (r.ok) {
+          chip.textContent = 'API Online ✓';
+          chip.className = 'status-chip';
+        } else {
+          chip.textContent = 'API ตอบ ' + r.status;
+          chip.className = 'status-chip warn';
+        }
+      } catch (_) {
+        chip.textContent = 'API Sleeping / CORS';
+        chip.className = 'status-chip warn';
+      }
+    }
+
+    applyFrameGeometry();
+    loadMeta();
+    checkApiHealth();
+  </script>
+</body>
+</html>

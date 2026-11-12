@@ -137,3 +137,4 @@ final Provider<AppUpdateService> appUpdateServiceProvider =
     Provider<AppUpdateService>((Ref ref) {
       return AppUpdateService();
     });
+

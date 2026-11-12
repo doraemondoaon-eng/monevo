@@ -35,3 +35,4 @@ class _StubApkInstallerDriver implements ApkInstallerDriver {
     return ApkInstallResult.unsupported;
   }
 }
+

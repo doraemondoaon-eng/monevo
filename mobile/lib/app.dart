@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,18 @@ import 'core/security/app_lock_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/presentation/settings_controller.dart';
 import 'l10n/app_strings.dart';
+
+class _AppScrollBehavior extends MaterialScrollBehavior {
+  const _AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const <PointerDeviceKind>{
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
+}
 
 class MonevoApp extends ConsumerStatefulWidget {
   const MonevoApp({super.key});
@@ -46,6 +59,7 @@ class _MonevoAppState extends ConsumerState<MonevoApp> {
     return MaterialApp.router(
       title: 'MONEVO',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const _AppScrollBehavior(),
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: settings.themeMode,
