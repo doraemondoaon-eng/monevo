@@ -166,14 +166,26 @@ class AppStrings {
   // Transactions
   String get newTransaction => tr('บันทึกรายการใหม่', 'New Transaction');
   String get editTransaction => tr('แก้ไขรายการ', 'Edit Transaction');
+  String get deleteTransactionConfirm =>
+      tr('ยืนยันการลบรายการธุรกรรม?', 'Delete this transaction?');
+  String get genericErrorMessage => tr(
+        'เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง',
+        'Something went wrong while loading data. Please try again.',
+      );
   String get amount => tr('จำนวนเงิน', 'Amount');
   String get fromAccount => tr('จากบัญชี', 'From Account');
+  String get fromAccountLabel => tr('จากบัญชีต้นทาง', 'From Account');
   String get toAccount => tr('ไปยังบัญชีปลายทาง', 'To Account');
+  String get toAccountLabel => tr('ไปยังบัญชีปลายทาง', 'To Account');
   String get account => tr('บัญชี', 'Account');
+  String get accountLabel => tr('บัญชี', 'Account');
   String get category => tr('หมวดหมู่', 'Category');
+  String get categoryLabel => tr('หมวดหมู่', 'Category');
   String get occurredAt => tr('วันและเวลา', 'Date & Time');
+  String get dateTimeLabel => tr('วันและเวลา', 'Date & Time');
   String get payee => tr('ผู้รับเงิน / ร้านค้า', 'Payee / Merchant');
   String get note => tr('บันทึกเพิ่มเติม', 'Note');
+  String get noteLabel => tr('บันทึกเพิ่มเติม', 'Note');
   String get uncategorized => tr('ไม่ระบุหมวดหมู่', 'Uncategorized');
 
   // Categories

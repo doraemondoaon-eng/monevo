@@ -10,6 +10,7 @@ class AppSettingsState {
     this.language = AppLanguage.th,
     this.useBuddhistEra = true,
     this.privacyMode = false,
+    this.autoLockSeconds = 60,
     this.loaded = false,
   });
 
@@ -17,6 +18,7 @@ class AppSettingsState {
   final AppLanguage language;
   final bool useBuddhistEra;
   final bool privacyMode;
+  final int autoLockSeconds;
   final bool loaded;
 
   AppStrings get strings => AppStrings(language);
@@ -26,6 +28,7 @@ class AppSettingsState {
     AppLanguage? language,
     bool? useBuddhistEra,
     bool? privacyMode,
+    int? autoLockSeconds,
     bool? loaded,
   }) {
     return AppSettingsState(
@@ -33,10 +36,13 @@ class AppSettingsState {
       language: language ?? this.language,
       useBuddhistEra: useBuddhistEra ?? this.useBuddhistEra,
       privacyMode: privacyMode ?? this.privacyMode,
+      autoLockSeconds: autoLockSeconds ?? this.autoLockSeconds,
       loaded: loaded ?? this.loaded,
     );
   }
 }
+
+typedef AppSettingsController = SettingsController;
 
 class SettingsController extends StateNotifier<AppSettingsState> {
   SettingsController(this._preferences) : super(const AppSettingsState()) {
@@ -50,12 +56,14 @@ class SettingsController extends StateNotifier<AppSettingsState> {
     final AppLanguage language = await _preferences.getLanguage();
     final bool useBuddhistEra = await _preferences.getUseBuddhistEra();
     final bool privacyMode = await _preferences.getPrivacyMode();
+    final int autoLockSeconds = await _preferences.getAutoLockSeconds();
 
     state = state.copyWith(
       themeMode: themeMode,
       language: language,
       useBuddhistEra: useBuddhistEra,
       privacyMode: privacyMode,
+      autoLockSeconds: autoLockSeconds,
       loaded: true,
     );
   }
@@ -84,6 +92,11 @@ class SettingsController extends StateNotifier<AppSettingsState> {
   Future<void> setPrivacyMode(bool value) async {
     state = state.copyWith(privacyMode: value);
     await _preferences.setPrivacyMode(value);
+  }
+
+  Future<void> setAutoLockSeconds(int seconds) async {
+    state = state.copyWith(autoLockSeconds: seconds);
+    await _preferences.setAutoLockSeconds(seconds);
   }
 }
 

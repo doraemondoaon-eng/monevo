@@ -154,6 +154,21 @@ class AppDateUtils {
     return '${local.day} $mName $yr';
   }
 
+  /// Formats a [DateTime] into a full date string (e.g. `12 พฤศจิกายน 2569` or `12 November 2026`).
+  static String formatFullDate(
+    DateTime dateTime, {
+    required AppLanguage language,
+    required bool useBuddhistEra,
+  }) {
+    final DateTime local = dateTime.toLocal();
+    final int idx = (local.month - 1).clamp(0, 11);
+    final int yr = displayYear(local.year, useBuddhistEra: useBuddhistEra);
+    final String mName = language == AppLanguage.th
+        ? _thaiMonthsFull[idx]
+        : _enMonthsFull[idx];
+    return '${local.day} $mName $yr';
+  }
+
   /// Formats a [DateTime] into a date + time string (`12 พ.ย. 2569, 14:30`).
   static String formatDateTime(
     DateTime dateTime, {

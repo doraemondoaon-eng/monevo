@@ -31,6 +31,7 @@ jobs:
       - name: Prepare Android project & preserve custom AndroidManifest.xml
         run: |
           cp android/app/src/main/AndroidManifest.xml /tmp/MonevoAndroidManifest.xml
+          rm -rf android
           flutter create . --org com.monevo --project-name monevo --platforms=android
           cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
           rm -f test/widget_test.dart

@@ -70,7 +70,12 @@ jobs:
           cache: true
       - name: Generate platform folders if not committed
         run: |
+          cp android/app/src/main/AndroidManifest.xml /tmp/MonevoAndroidManifest.xml
+          cp ios/Runner/Info.plist /tmp/MonevoInfo.plist
+          rm -rf android ios
           flutter create . --org com.monevo --project-name monevo --platforms=android,ios,web
+          cp /tmp/MonevoAndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          cp /tmp/MonevoInfo.plist ios/Runner/Info.plist
           rm -f test/widget_test.dart
       - run: flutter pub get
       - run: flutter analyze
