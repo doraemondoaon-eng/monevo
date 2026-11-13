@@ -37,6 +37,36 @@ class _RouterRefreshChangeNotifier extends ChangeNotifier {
 final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
 
+CustomTransitionPage<void> _buildFadeThroughPage(
+  GoRouterState state,
+  Widget child,
+) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    transitionDuration: const Duration(milliseconds: 340),
+    reverseTransitionDuration: const Duration(milliseconds: 240),
+    child: child,
+    transitionsBuilder: (
+      BuildContext context,
+      Animation<double> animation,
+      Animation<double> secondaryAnimation,
+      Widget pageChild,
+    ) {
+      final CurvedAnimation curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.985, end: 1.0).animate(curved),
+          child: pageChild,
+        ),
+      );
+    },
+  );
+}
+
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
   final _RouterRefreshChangeNotifier refreshNotifier =
       _RouterRefreshChangeNotifier(ref);
@@ -76,23 +106,23 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
     routes: <RouteBase>[
       GoRoute(
         path: '/wakeup',
-        builder: (BuildContext context, GoRouterState state) =>
-            const ServerWakeupScreen(),
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _buildFadeThroughPage(state, const ServerWakeupScreen()),
       ),
       GoRoute(
         path: '/setup',
-        builder: (BuildContext context, GoRouterState state) =>
-            const SetupRegisterScreen(),
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _buildFadeThroughPage(state, const SetupRegisterScreen()),
       ),
       GoRoute(
         path: '/login',
-        builder: (BuildContext context, GoRouterState state) =>
-            const LoginScreen(),
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _buildFadeThroughPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/lock',
-        builder: (BuildContext context, GoRouterState state) =>
-            const LockScreen(),
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _buildFadeThroughPage(state, const LockScreen()),
       ),
       GoRoute(
         path: '/categories',

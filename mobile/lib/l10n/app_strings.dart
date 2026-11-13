@@ -33,9 +33,18 @@ class AppStrings {
 
   // App & Navigation
   String get appName => 'MONEVO';
+  String get brandMotto => 'Manage • Save • Grow';
   String get appTagline => tr(
         'บริหารการเงินส่วนบุคคลอย่างเหนือระดับ',
         'Premium Personal Finance & Wealth Tracker',
+      );
+  String get splashPreparing => tr(
+        'กำลังเตรียมพื้นที่ทางการเงินของคุณ...',
+        'Preparing your financial workspace...',
+      );
+  String get splashSecurityBadge => tr(
+        'บัญชีส่วนตัว • เข้ารหัสปลอดภัย',
+        'Private Ledger • End-to-End Encrypted',
       );
   String get navDashboard => tr('ภาพรวม', 'Dashboard');
   String get navTransactions => tr('รายการ', 'Transactions');

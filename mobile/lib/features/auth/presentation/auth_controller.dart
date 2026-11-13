@@ -56,13 +56,21 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._repository) : super(const AuthState()) {
-    bootstrap();
+  AuthController(
+    this._repository, {
+    bool autoBootstrap = true,
+    this.minSplashDuration = const Duration(milliseconds: 1450),
+  }) : super(const AuthState()) {
+    if (autoBootstrap) {
+      bootstrap();
+    }
   }
 
   final AuthRepository _repository;
+  final Duration minSplashDuration;
   Timer? _elapsedTimer;
   bool _bootstrapping = false;
+  bool _completedInitialSplash = false;
 
   @override
   void dispose() {
@@ -76,6 +84,11 @@ class AuthController extends StateNotifier<AuthState> {
     }
     _bootstrapping = true;
     _elapsedTimer?.cancel();
+
+    final Future<void>? minSplashFuture =
+        !_completedInitialSplash && minSplashDuration > Duration.zero
+            ? Future<void>.delayed(minSplashDuration)
+            : null;
 
     state = state.copyWith(
       stage: AuthStage.wakingServer,
@@ -97,9 +110,16 @@ class AuthController extends StateNotifier<AuthState> {
       try {
         await _repository.checkHealth();
         final AuthStatus status = await _repository.getStatus();
-        _elapsedTimer?.cancel();
 
         if (status.registrationOpen) {
+          if (minSplashFuture != null) {
+            await minSplashFuture;
+          }
+          _completedInitialSplash = true;
+          _elapsedTimer?.cancel();
+          if (!mounted) {
+            break;
+          }
           state = state.copyWith(
             stage: AuthStage.needsSetup,
             clearUser: true,
@@ -110,6 +130,14 @@ class AuthController extends StateNotifier<AuthState> {
         }
 
         final User? restoredUser = await _repository.restoreSession();
+        if (minSplashFuture != null) {
+          await minSplashFuture;
+        }
+        _completedInitialSplash = true;
+        _elapsedTimer?.cancel();
+        if (!mounted) {
+          break;
+        }
         if (restoredUser != null) {
           state = state.copyWith(
             stage: AuthStage.authenticated,
@@ -126,6 +154,7 @@ class AuthController extends StateNotifier<AuthState> {
         _bootstrapping = false;
         return;
       } on ApiException catch (e) {
+        _completedInitialSplash = true;
         attempt += 1;
         if (!mounted) {
           break;
@@ -136,6 +165,7 @@ class AuthController extends StateNotifier<AuthState> {
         );
         await Future<void>.delayed(const Duration(seconds: 3));
       } catch (_) {
+        _completedInitialSplash = true;
         attempt += 1;
         if (!mounted) {
           break;
