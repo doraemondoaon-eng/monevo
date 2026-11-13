@@ -321,8 +321,8 @@ class TransactionsController extends StateNotifier<TransactionsState> {
     return updated;
   }
 
-  Future<void> deleteTransaction(String id) async {
-    TransactionModel? removed;
+  Future<void> deleteTransaction(String id, {TransactionModel? fallback}) async {
+    TransactionModel? removed = fallback;
     for (final TransactionModel item in state.items) {
       if (item.id == id) {
         removed = item;

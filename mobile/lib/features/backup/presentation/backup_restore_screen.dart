@@ -151,7 +151,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           message: e.toString(),
         );
       }
-    }
     } finally {
       if (mounted) {
         setState(() => _busy = false);

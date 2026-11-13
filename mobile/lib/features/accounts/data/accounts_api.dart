@@ -154,9 +154,12 @@ class AccountsApi {
     }
   }
 
-  Future<void> deleteAccount(String id) async {
+  Future<void> deleteAccount(String id, {bool cascade = false}) async {
     try {
-      await _dio.delete<void>('/accounts/$id');
+      await _dio.delete<void>(
+        '/accounts/$id',
+        queryParameters: cascade ? <String, dynamic>{'cascade': 'true'} : null,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

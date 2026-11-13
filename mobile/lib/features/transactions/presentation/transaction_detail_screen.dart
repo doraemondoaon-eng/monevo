@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../l10n/app_strings.dart';
@@ -17,6 +19,7 @@ import '../../accounts/domain/account_model.dart';
 import '../../accounts/presentation/accounts_controller.dart';
 import '../../categories/domain/category_model.dart';
 import '../../categories/presentation/categories_controller.dart';
+import '../../dashboard/presentation/dashboard_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
 import '../data/transactions_repository.dart';
 import '../domain/transaction_model.dart';
@@ -94,13 +97,20 @@ class _TransactionDetailScreenState
   }
 
   Future<void> _openEditSheet(TransactionModel tx) async {
-    final bool? updated = await showModalBottomSheet<bool>(
+    final dynamic result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => TransactionFormSheet(existing: tx),
     );
-    if (updated == true && mounted) {
+    if (!mounted) {
+      return;
+    }
+    if (result == 'deleted') {
+      context.pop('deleted');
+      return;
+    }
+    if (result == true) {
       _transaction = null;
       await _loadTransactionAndLocalImage();
     }
@@ -156,38 +166,60 @@ class _TransactionDetailScreenState
       }
       deleteLocalFile = choice == 'delete_both';
     } else {
-      final bool? confirmed = await showDialog<bool>(
-        context: context,
-        builder: (BuildContext ctx) => AlertDialog(
-          title: Text(strings.deleteTransactionConfirm),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(strings.cancel),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(strings.delete),
-            ),
-          ],
+      final bool confirmed = await MonevoAlert.showConfirm(
+        context,
+        title: strings.deleteTransactionConfirm,
+        message: strings.tr(
+          'คุณต้องการลบรายการธุรกรรมนี้ใช่หรือไม่?',
+          'Are you sure you want to delete this transaction?',
         ),
+        confirmLabel: strings.delete,
+        cancelLabel: strings.cancel,
+        isDestructive: true,
+        icon: Icons.delete_outline_rounded,
       );
-      if (confirmed != true) {
+      if (!confirmed) {
         return;
       }
     }
 
-    await ref
-        .read(transactionsControllerProvider.notifier)
-        .deleteTransaction(tx.id);
-    if (attachment != null) {
+    try {
       await ref
-          .read(localImageAttachmentsProvider.notifier)
-          .removeForTransaction(tx.id, deleteLocalFile: deleteLocalFile);
-    }
-    if (mounted) {
-      context.pop();
+          .read(transactionsControllerProvider.notifier)
+          .deleteTransaction(tx.id, fallback: tx);
+      if (attachment != null) {
+        await ref
+            .read(localImageAttachmentsProvider.notifier)
+            .removeForTransaction(tx.id, deleteLocalFile: deleteLocalFile);
+      }
+      ref.read(accountsControllerProvider.notifier).loadAccounts();
+      ref.read(dashboardControllerProvider.notifier).refresh();
+      if (!mounted) {
+        return;
+      }
+      context.pop('deleted');
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showToast(
+          targetContext,
+          message: strings.tr(
+            'ลบรายการธุรกรรมเรียบร้อยแล้ว',
+            'Transaction deleted successfully',
+          ),
+          type: MonevoAlertType.info,
+          icon: Icons.delete_outline_rounded,
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      MonevoAlert.showError(
+        context,
+        title: strings.tr('ลบรายการไม่สำเร็จ', 'Failed to delete transaction'),
+        message: e.localizedMessage(strings),
+      );
     }
   }
 
@@ -473,6 +505,37 @@ class _TransactionDetailScreenState
                   ],
                 ),
               ),
+            const SizedBox(height: 28),
+            BouncyTap(
+              onTap: () => _confirmAndDelete(tx, strings),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.expense.withAlpha(20),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.expense.withAlpha(70)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.expense,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      strings.deleteTransactionConfirm,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: AppColors.expense,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

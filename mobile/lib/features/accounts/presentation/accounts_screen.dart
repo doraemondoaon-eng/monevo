@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../l10n/app_strings.dart';
+import '../../dashboard/presentation/dashboard_controller.dart';
+import '../../transactions/data/transactions_api.dart';
+import '../../transactions/data/transactions_repository.dart';
+import '../../transactions/domain/transaction_model.dart';
+import '../../transactions/presentation/transactions_controller.dart';
 import '../domain/account_model.dart';
 import 'account_form_sheet.dart';
 import 'accounts_controller.dart';
@@ -274,14 +281,88 @@ class _AccountGroupSection extends StatelessWidget {
   }
 }
 
-class _AccountListTile extends StatelessWidget {
+class _AccountListTile extends ConsumerWidget {
   const _AccountListTile({required this.account});
 
   final AccountModel account;
 
+  Future<void> _handleDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AppStrings strings,
+  ) async {
+    final bool confirmed = await MonevoAlert.showConfirm(
+      context,
+      title: strings.tr(
+        'ลบบัญชี "${account.name}"?',
+        'Delete account "${account.name}"?',
+      ),
+      message: strings.tr(
+        'หากยืนยันลบ ระบบจะลบบัญชีนี้พร้อมทั้งรายการธุรกรรมทั้งหมดที่เกี่ยวข้องออกอย่างถาวร',
+        'Confirming will permanently delete this account and all associated transactions.',
+      ),
+      confirmLabel: strings.tr(
+        'ลบบัญชีและธุรกรรมทั้งหมด',
+        'Delete Account & Transactions',
+      ),
+      cancelLabel: strings.cancel,
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await ref
+          .read(accountsControllerProvider.notifier)
+          .deleteAccountCascade(
+            account.id,
+            onCleanupTransactions: (String accId) async {
+              final TransactionsApi api = ref.read(transactionsApiProvider);
+              final TransactionsRepository repo = ref.read(
+                transactionsRepositoryProvider,
+              );
+              final PaginatedTransactions page = await api.getTransactions(
+                filter: TransactionFilter(accountId: accId),
+                limit: 100,
+              );
+              for (final TransactionModel tx in page.items) {
+                try {
+                  await repo.deleteTransaction(tx.id);
+                } catch (_) {}
+              }
+            },
+          );
+      ref.read(dashboardControllerProvider.notifier).refresh();
+      ref.read(transactionsControllerProvider.notifier).loadInitial();
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showSuccess(
+          targetContext,
+          title: strings.tr('ลบบัญชีสำเร็จ!', 'Account Deleted!'),
+          subtitle: strings.tr(
+            'ลบบัญชี "${account.name}" เรียบร้อยแล้ว',
+            'Account "${account.name}" removed.',
+          ),
+        );
+      }
+    } catch (e) {
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showError(
+          targetContext,
+          title: strings.tr('ไม่สามารถลบบัญชีได้', 'Failed to delete account'),
+          message: e.toString(),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final AppStrings strings = AppStrings.of(context);
     final Color color = AppColors.fromHex(account.color);
 
     return InkWell(
@@ -330,7 +411,7 @@ class _AccountListTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
@@ -350,6 +431,57 @@ class _AccountListTile extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
+              ],
+            ),
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onSelected: (String val) async {
+                if (val == 'edit') {
+                  await showModalBottomSheet<AccountModel>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (_) => AccountFormSheet(existing: account),
+                  );
+                } else if (val == 'delete') {
+                  await _handleDelete(context, ref, strings);
+                }
+              },
+              itemBuilder: (BuildContext ctx) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.edit_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(strings.edit),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: AppColors.expense,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        strings.delete,
+                        style: const TextStyle(color: AppColors.expense),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ],

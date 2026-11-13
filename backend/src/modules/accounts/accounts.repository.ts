@@ -101,6 +101,25 @@ export class AccountsRepository {
       .where(and(eq(accounts.id, id), eq(accounts.userId, userId)));
   }
 
+  async softDeleteCascade(userId: string, id: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(transactions)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            isNull(transactions.deletedAt),
+            or(eq(transactions.accountId, id), eq(transactions.toAccountId, id)),
+          ),
+        );
+      await tx
+        .update(accounts)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(accounts.id, id), eq(accounts.userId, userId)));
+    });
+  }
+
   async computeLedgerDelta(userId: string, accountId: string): Promise<number> {
     const result = await this.db.execute(sql`
       SELECT COALESCE(SUM(

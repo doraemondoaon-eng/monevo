@@ -14,9 +14,11 @@ import '../../../core/widgets/state_views.dart';
 import '../../../l10n/app_strings.dart';
 import '../../dashboard/presentation/dashboard_controller.dart';
 import '../../transactions/data/transactions_api.dart';
+import '../../transactions/data/transactions_repository.dart';
 import '../../transactions/domain/transaction_model.dart';
 import '../../transactions/presentation/transaction_form_sheet.dart';
 import '../../transactions/presentation/transaction_tile.dart';
+import '../../transactions/presentation/transactions_controller.dart';
 import '../domain/account_model.dart';
 import 'account_form_sheet.dart';
 import 'accounts_controller.dart';
@@ -122,14 +124,22 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
 
   Future<void> _handleDelete(AccountModel account) async {
     final AppStrings strings = AppStrings.of(context);
+    final bool hasTx = _transactions.isNotEmpty;
     final bool confirmed = await MonevoAlert.showConfirm(
       context,
-      title: strings.delete,
-      message: strings.tr(
-        'ต้องการลบบัญชี "${account.name}" ใช่หรือไม่?',
-        'Delete account "${account.name}"?',
-      ),
-      confirmLabel: strings.delete,
+      title: strings.tr('ลบบัญชี "${account.name}"?', 'Delete account "${account.name}"?'),
+      message: hasTx
+          ? strings.tr(
+              'บัญชีนี้มีรายการธุรกรรมอยู่ หากยืนยันลบ ระบบจะลบบัญชีพร้อมทั้งรายการธุรกรรมทั้งหมดในบัญชีนี้ออกด้วย',
+              'This account has transactions. Confirming will delete this account along with all associated transactions.',
+            )
+          : strings.tr(
+              'คุณต้องการลบบัญชีนี้ใช่หรือไม่?',
+              'Are you sure you want to delete this account?',
+            ),
+      confirmLabel: hasTx
+          ? strings.tr('ลบบัญชีและธุรกรรมทั้งหมด', 'Delete Account & Transactions')
+          : strings.delete,
       cancelLabel: strings.cancel,
       isDestructive: true,
       icon: Icons.delete_outline_rounded,
@@ -140,10 +150,25 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
     }
 
     try {
-      await ref
-          .read(accountsControllerProvider.notifier)
-          .deleteAccount(account.id);
+      await ref.read(accountsControllerProvider.notifier).deleteAccountCascade(
+        account.id,
+        onCleanupTransactions: (String accId) async {
+          final TransactionsApi api = ref.read(transactionsApiProvider);
+          final TransactionsRepository repo =
+              ref.read(transactionsRepositoryProvider);
+          final PaginatedTransactions page = await api.getTransactions(
+            filter: TransactionFilter(accountId: accId),
+            limit: 100,
+          );
+          for (final TransactionModel tx in page.items) {
+            try {
+              await repo.deleteTransaction(tx.id);
+            } catch (_) {}
+          }
+        },
+      );
       ref.read(dashboardControllerProvider.notifier).refresh();
+      ref.read(transactionsControllerProvider.notifier).loadInitial();
       if (!mounted) {
         return;
       }
@@ -151,52 +176,24 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
 
       final BuildContext? targetContext = rootNavigatorKey.currentContext;
       if (targetContext != null && targetContext.mounted) {
-        MonevoAlert.showToast(
+        MonevoAlert.showSuccess(
           targetContext,
-          message: strings.tr('ลบบัญชีเรียบร้อยแล้ว', 'Account deleted successfully'),
-          type: MonevoAlertType.info,
-          icon: Icons.delete_outline_rounded,
+          title: strings.tr('ลบบัญชีสำเร็จ!', 'Account Deleted!'),
+          subtitle: strings.tr(
+            'ลบบัญชี "${account.name}" และรายการที่เกี่ยวข้องเรียบร้อยแล้ว',
+            'Account "${account.name}" and associated records have been removed.',
+          ),
         );
       }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
-      if (e.isAccountHasTransactions) {
-        final bool? archiveInstead = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext ctx) {
-            return AlertDialog(
-              title: Text(strings.archive),
-              content: Text(e.localizedMessage(strings)),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: Text(strings.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: Text(strings.archive),
-                ),
-              ],
-            );
-          },
-        );
-        if (archiveInstead == true && mounted) {
-          await ref
-              .read(accountsControllerProvider.notifier)
-              .updateAccount(account.id, isArchived: true);
-          ref.read(dashboardControllerProvider.notifier).refresh();
-          if (!mounted) {
-            return;
-          }
-          Navigator.of(context).pop();
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.localizedMessage(strings))),
-        );
-      }
+      MonevoAlert.showError(
+        context,
+        title: strings.tr('ไม่สามารถลบบัญชีได้', 'Failed to delete account'),
+        message: e.localizedMessage(strings),
+      );
     }
   }
 
@@ -431,7 +428,7 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                           transaction: _transactions[i],
                           showDate: true,
                           onTap: () async {
-                            await showModalBottomSheet<bool>(
+                            await showModalBottomSheet<dynamic>(
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
@@ -439,7 +436,15 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                                 existing: _transactions[i],
                               ),
                             );
-                            await _loadAccountTransactions();
+                            if (mounted) {
+                              await _loadAccountTransactions();
+                              ref
+                                  .read(accountsControllerProvider.notifier)
+                                  .loadAccounts();
+                              ref
+                                  .read(dashboardControllerProvider.notifier)
+                                  .refresh();
+                            }
                           },
                         ),
                       ],
@@ -454,6 +459,37 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                     ],
                   ),
                 ),
+              const SizedBox(height: 28),
+              BouncyTap(
+                onTap: () => _handleDelete(account),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.expense.withAlpha(20),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.expense.withAlpha(70)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.expense,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        strings.tr('ลบบัญชีนี้', 'Delete This Account'),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.expense,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/amount_text.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
 import '../../../core/widgets/state_views.dart';
@@ -15,6 +17,7 @@ import '../../accounts/domain/account_model.dart';
 import '../../accounts/presentation/accounts_controller.dart';
 import '../../categories/domain/category_model.dart';
 import '../../categories/presentation/categories_controller.dart';
+import '../../dashboard/presentation/dashboard_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
 import '../domain/transaction_model.dart';
 import 'transaction_tile.dart';
@@ -412,11 +415,91 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       for (int i = 0; i < group.items.length; i++) ...<Widget>[
                         if (i > 0)
                           const Divider(indent: 72, endIndent: 16, height: 1),
-                        TransactionTile(
-                          transaction: group.items[i],
-                          onTap: () => context.push(
-                            '/transactions/${group.items[i].id}',
-                            extra: group.items[i],
+                        Dismissible(
+                          key: ValueKey<String>('tx_${group.items[i].id}'),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (DismissDirection direction) async {
+                            return await MonevoAlert.showConfirm(
+                              context,
+                              title: strings.deleteTransactionConfirm,
+                              message: strings.tr(
+                                'คุณต้องการลบรายการธุรกรรมนี้ใช่หรือไม่?',
+                                'Are you sure you want to delete this transaction?',
+                              ),
+                              confirmLabel: strings.delete,
+                              cancelLabel: strings.cancel,
+                              isDestructive: true,
+                              icon: Icons.delete_outline_rounded,
+                            );
+                          },
+                          onDismissed: (DismissDirection direction) async {
+                            final TransactionModel tx = group.items[i];
+                            await ref
+                                .read(transactionsControllerProvider.notifier)
+                                .deleteTransaction(tx.id, fallback: tx);
+                            ref
+                                .read(accountsControllerProvider.notifier)
+                                .loadAccounts();
+                            ref
+                                .read(dashboardControllerProvider.notifier)
+                                .refresh();
+                            final BuildContext? targetContext =
+                                rootNavigatorKey.currentContext;
+                            if (targetContext != null &&
+                                targetContext.mounted) {
+                              MonevoAlert.showToast(
+                                targetContext,
+                                message: strings.tr(
+                                  'ลบรายการธุรกรรมเรียบร้อยแล้ว',
+                                  'Transaction deleted successfully',
+                                ),
+                                type: MonevoAlertType.info,
+                                icon: Icons.delete_outline_rounded,
+                              );
+                            }
+                          },
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: AppColors.expense.withAlpha(220),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'ลบ',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: TransactionTile(
+                            transaction: group.items[i],
+                            onTap: () async {
+                              final dynamic res = await context.push(
+                                '/transactions/${group.items[i].id}',
+                                extra: group.items[i],
+                              );
+                              if (res == 'deleted') {
+                                ref
+                                    .read(accountsControllerProvider.notifier)
+                                    .loadAccounts();
+                                ref
+                                    .read(dashboardControllerProvider.notifier)
+                                    .refresh();
+                              }
+                            },
                           ),
                         ),
                       ],

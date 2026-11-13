@@ -18,6 +18,7 @@ import '../../accounts/presentation/accounts_controller.dart';
 import '../../categories/domain/category_model.dart';
 import '../../categories/presentation/categories_controller.dart';
 import '../../categories/presentation/categories_screen.dart';
+import '../../dashboard/presentation/dashboard_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
 import '../domain/transaction_model.dart';
 import 'transactions_controller.dart';
@@ -418,7 +419,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     try {
       await ref
           .read(transactionsControllerProvider.notifier)
-          .deleteTransaction(existing.id);
+          .deleteTransaction(existing.id, fallback: existing);
       if (hasAttachedImage) {
         await ref
             .read(localImageAttachmentsProvider.notifier)
@@ -427,17 +428,34 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               deleteLocalFile: deleteLocalFile,
             );
       }
+      ref.read(accountsControllerProvider.notifier).loadAccounts();
+      ref.read(dashboardControllerProvider.notifier).refresh();
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop();
+      Navigator.of(context).pop('deleted');
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showToast(
+          targetContext,
+          message: strings.tr(
+            'ลบรายการธุรกรรมเรียบร้อยแล้ว',
+            'Transaction deleted successfully',
+          ),
+          type: MonevoAlertType.info,
+          icon: Icons.delete_outline_rounded,
+        );
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.localizedMessage(strings))),
+      MonevoAlert.showError(
+        context,
+        title: strings.tr('ลบรายการไม่สำเร็จ', 'Failed to delete transaction'),
+        message: e.localizedMessage(strings),
       );
     }
   }

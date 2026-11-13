@@ -202,8 +202,29 @@ class AccountsController extends StateNotifier<AccountsState> {
     return reconciled;
   }
 
-  Future<void> deleteAccount(String id) async {
-    await _repo.deleteAccount(id);
+  Future<void> deleteAccount(String id, {bool cascade = false}) async {
+    await _repo.deleteAccount(id, cascade: cascade);
+    state = state.copyWith(
+      items: state.items.where((AccountModel a) => a.id != id).toList(),
+    );
+  }
+
+  Future<void> deleteAccountCascade(
+    String id, {
+    Future<void> Function(String accountId)? onCleanupTransactions,
+  }) async {
+    try {
+      await _repo.deleteAccount(id, cascade: true);
+    } on ApiException catch (e) {
+      if (e.isAccountHasTransactions || e.statusCode == 409) {
+        if (onCleanupTransactions != null) {
+          await onCleanupTransactions(id);
+        }
+        await _repo.deleteAccount(id);
+      } else {
+        rethrow;
+      }
+    }
     state = state.copyWith(
       items: state.items.where((AccountModel a) => a.id != id).toList(),
     );

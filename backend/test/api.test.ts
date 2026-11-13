@@ -691,5 +691,65 @@ describe('MONEVO REST API (v1) integration suite', () => {
     expect(txCheck.statusCode).toBe(200);
     expect(txCheck.json().data.length).toBeGreaterThanOrEqual(3);
   });
+
+  it('supports cascade account deletion (soft-deleting account and its transactions)', async () => {
+    // 1) Create a temporary account
+    const accRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/accounts',
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: { name: 'Cascade Test Account', type: 'cash', openingBalance: 100_00 },
+    });
+    expect(accRes.statusCode).toBe(201);
+    const accId = accRes.json().data.id;
+
+    // 2) Add a transaction to this account
+    const txRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/transactions',
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: {
+        type: 'expense',
+        amount: 25_00,
+        accountId: accId,
+        occurredAt: new Date().toISOString(),
+      },
+    });
+    expect(txRes.statusCode).toBe(201);
+    const txId = txRes.json().data.id;
+
+    // 3) Normal delete without cascade should fail with 409
+    const blocked = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/accounts/${accId}`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.json().error.code).toBe('ACCOUNT_HAS_TRANSACTIONS');
+
+    // 4) Delete with cascade=true should succeed with 204
+    const cascadeDel = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/accounts/${accId}?cascade=true`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(cascadeDel.statusCode).toBe(204);
+
+    // 5) Verify account is gone
+    const accCheck = await app.inject({
+      method: 'GET',
+      url: `/api/v1/accounts/${accId}`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(accCheck.statusCode).toBe(404);
+
+    // 6) Verify transaction is gone
+    const txCheck = await app.inject({
+      method: 'GET',
+      url: `/api/v1/transactions/${txId}`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(txCheck.statusCode).toBe(404);
+  });
 });
 

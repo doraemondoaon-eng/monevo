@@ -97,7 +97,8 @@ class AccountsRepository {
     );
   }
 
-  Future<void> deleteAccount(String id) => _api.deleteAccount(id);
+  Future<void> deleteAccount(String id, {bool cascade = false}) =>
+      _api.deleteAccount(id, cascade: cascade);
 
   Future<AccountModel> reconcileAccount(String id) =>
       _api.reconcileAccount(id);

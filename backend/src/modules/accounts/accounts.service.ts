@@ -76,9 +76,13 @@ export class AccountsService {
     return toAccountDto(row);
   }
 
-  async remove(userId: string, id: string) {
+  async remove(userId: string, id: string, cascade = false) {
     await this.findOwned(userId, id);
     if (await this.repo.hasActiveTransactions(userId, id)) {
+      if (cascade) {
+        await this.repo.softDeleteCascade(userId, id);
+        return;
+      }
       throw AppError.conflict('ACCOUNT_HAS_TRANSACTIONS', 'Account has transactions; archive it instead');
     }
     await this.repo.softDelete(userId, id);
