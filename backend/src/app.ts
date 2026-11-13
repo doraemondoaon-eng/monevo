@@ -36,6 +36,7 @@ import { TokenService } from './security/tokens.js';
 export interface BuildAppOptions {
   env: Env;
   db: Database;
+  beforeApiRequest?: () => Promise<void>;
 }
 
 const healthSchema = z.object({
@@ -44,7 +45,7 @@ const healthSchema = z.object({
   version: z.string(),
 });
 
-export async function buildApp({ env, db }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ env, db, beforeApiRequest }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: env.LOG_LEVEL,
@@ -170,6 +171,14 @@ export async function buildApp({ env, db }: BuildAppOptions): Promise<FastifyIns
   // 3. Transport / Presentation Layer (HTTP REST Routes + Zod Validation)
   await app.register(
     async (v1) => {
+      if (beforeApiRequest) {
+        v1.addHook('onRequest', async (req) => {
+          if (req.url === '/api/v1/health' || req.url.startsWith('/api/v1/health?')) {
+            return;
+          }
+          await beforeApiRequest();
+        });
+      }
       v1.withTypeProvider<ZodTypeProvider>().get(
         '/health',
         {

@@ -16,8 +16,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
-# Section 12 Cloud Hosting Optimization: cap V8 heap below Render Free Tier 512 MB RAM limit
-ENV NODE_OPTIONS="--max-old-space-size=384"
+# Cap V8 heap safely below 256 MB Hostless / container memory limits
+ENV NODE_OPTIONS="--max-old-space-size=192"
 
 RUN addgroup -S monevo && adduser -S monevo -G monevo
 

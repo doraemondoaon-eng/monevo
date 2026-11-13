@@ -3,10 +3,11 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AppError } from '../src/common/errors.js';
 import { buildApp } from '../src/app.js';
 import { loadEnv } from '../src/config/env.js';
 import type { Database } from '../src/db/client.js';
-import { MIGRATIONS_FOLDER } from '../src/db/migrate.js';
+import { isTransientDbError, MIGRATIONS_FOLDER, runMigrationsWithRetry } from '../src/db/migrate.js';
 import * as schema from '../src/db/schema.js';
 
 describe('MONEVO REST API (v1) integration suite', () => {
@@ -792,6 +793,79 @@ describe('MONEVO REST API (v1) integration suite', () => {
       headers: { authorization: `Bearer ${accessToken}` },
     });
     expect(txCheck.statusCode).toBe(404);
+  });
+
+  it('retries transient TLS/socket database resets during cold startup migrations', async () => {
+    const tlsResetError = Object.assign(new Error('Failed query: CREATE SCHEMA IF NOT EXISTS "drizzle"'), {
+      cause: Object.assign(
+        new Error('Client network socket disconnected before secure TLS connection was established'),
+        { code: 'ECONNRESET', host: 'monevo-db.db.hostless.cloud' },
+      ),
+    });
+    const permanentError = new Error('syntax error at or near "BADSQL"');
+
+    expect(isTransientDbError(tlsResetError)).toBe(true);
+    expect(isTransientDbError(permanentError)).toBe(false);
+
+    let attempts = 0;
+    await runMigrationsWithRetry(db, {
+      delaysMs: [1, 1, 1],
+      run: async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          throw tlsResetError;
+        }
+      },
+    });
+    expect(attempts).toBe(3);
+
+    await expect(
+      runMigrationsWithRetry(db, {
+        delaysMs: [1, 1],
+        run: async () => {
+          throw permanentError;
+        },
+      }),
+    ).rejects.toThrow('syntax error');
+  });
+
+  it('keeps /health returning 200 while returning structured 503 with CORS when DB is warming up', async () => {
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      DATABASE_URL: 'postgres://test:test@localhost:5432/test',
+      JWT_ACCESS_SECRET: 'test-access-secret-with-at-least-32-characters-12345',
+      JWT_REFRESH_SECRET: 'test-refresh-secret-with-at-least-32-characters-67890',
+      ENABLE_API_DOCS: 'false',
+    });
+
+    const warmingApp = await buildApp({
+      env,
+      db,
+      beforeApiRequest: async () => {
+        throw AppError.serviceUnavailable('Database is waking up');
+      },
+    });
+    await warmingApp.ready();
+
+    try {
+      const h1 = await warmingApp.inject({ method: 'GET', url: '/health' });
+      expect(h1.statusCode).toBe(200);
+
+      const h2 = await warmingApp.inject({ method: 'GET', url: '/api/v1/health' });
+      expect(h2.statusCode).toBe(200);
+
+      const apiRes = await warmingApp.inject({
+        method: 'GET',
+        url: '/api/v1/accounts',
+        headers: { origin: 'http://127.0.0.1:4322' },
+      });
+      expect(apiRes.statusCode).toBe(503);
+      expect(apiRes.headers['access-control-allow-origin']).toBe('http://127.0.0.1:4322');
+      expect(apiRes.json().error.code).toBe('SERVICE_UNAVAILABLE');
+    } finally {
+      await warmingApp.close();
+    }
   });
 });
 

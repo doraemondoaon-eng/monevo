@@ -15,6 +15,7 @@ export type ErrorCode =
   | 'ACCOUNT_HAS_TRANSACTIONS'
   | 'CATEGORY_IN_USE'
   | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR';
 
 export interface ErrorDetail {
@@ -50,6 +51,9 @@ export class AppError extends Error {
   }
   static conflict(code: ErrorCode, message: string) {
     return new AppError(409, code, message);
+  }
+  static serviceUnavailable(message = 'Service temporarily unavailable') {
+    return new AppError(503, 'SERVICE_UNAVAILABLE', message);
   }
 }
 
