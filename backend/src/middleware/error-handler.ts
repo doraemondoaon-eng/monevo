@@ -37,11 +37,12 @@ export function registerErrorHandler(app: FastifyInstance): void {
       });
     }
 
-    if ((err as FastifyError).statusCode === 429) {
-      return reply.status(429).send({
+    const fastifyErr = err as FastifyError;
+    if (fastifyErr.statusCode && fastifyErr.statusCode >= 400 && fastifyErr.statusCode < 500) {
+      return reply.status(fastifyErr.statusCode).send({
         error: {
-          code: 'RATE_LIMITED',
-          message: err.message || 'Too many requests, please try again later',
+          code: fastifyErr.code || (fastifyErr.statusCode === 429 ? 'RATE_LIMITED' : 'BAD_REQUEST'),
+          message: fastifyErr.message,
         },
       });
     }

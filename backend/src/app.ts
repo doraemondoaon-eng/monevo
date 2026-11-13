@@ -63,6 +63,21 @@ export async function buildApp({ env, db }: BuildAppOptions): Promise<FastifyIns
   registerErrorHandler(app);
   registerStoragePolicyEnforcement(app);
 
+  // Allow empty JSON bodies on requests (e.g. DELETE/GET with Content-Type header from clients like Dio)
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body: string, done) => {
+    if (!body || body.trim().length === 0) {
+      done(null, undefined);
+      return;
+    }
+    try {
+      done(null, JSON.parse(body));
+    } catch (err) {
+      const parseErr = err as Error & { statusCode?: number };
+      parseErr.statusCode = 400;
+      done(parseErr, undefined);
+    }
+  });
+
   await app.register(helmet, {
     contentSecurityPolicy: env.ENABLE_API_DOCS ? false : undefined,
   });

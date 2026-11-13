@@ -713,11 +713,14 @@ describe('MONEVO REST API (v1) integration suite', () => {
     expect(tx.statusCode).toBe(201);
     const txId = tx.json().data.id;
 
-    // 3) Delete transaction
+    // 3) Delete transaction (specifically passing Content-Type: application/json with empty body like Dio client)
     const del = await app.inject({
       method: 'DELETE',
       url: `/api/v1/transactions/${txId}`,
-      headers: { authorization: `Bearer ${accessToken}` },
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        'content-type': 'application/json',
+      },
     });
     console.log('DEL EXPENSE STATUS:', del.statusCode, del.body);
     expect(del.statusCode).toBe(204);

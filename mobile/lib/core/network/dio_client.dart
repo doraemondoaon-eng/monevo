@@ -38,6 +38,21 @@ final Provider<Dio> dioProvider = Provider<Dio>((Ref ref) {
   final Dio refreshDio = Dio(baseOptions);
 
   primaryDio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+        if (options.data == null &&
+            (options.method == 'DELETE' ||
+                options.method == 'GET' ||
+                options.method == 'HEAD')) {
+          options.headers.remove('Content-Type');
+          options.headers.remove('content-type');
+        }
+        return handler.next(options);
+      },
+    ),
+  );
+
+  primaryDio.interceptors.add(
     AuthInterceptor(
       secureStorage: secureStorage,
       retryDio: primaryDio,
