@@ -249,6 +249,38 @@ void main() {
       expect(find.text('หมวดหมู่'), findsOneWidget);
       expect(find.text('เงินเดือน'), findsOneWidget);
     });
+
+    testWidgets(
+      'uses crimson red palette in expense mode and switches cleanly per type',
+      (WidgetTester tester) async {
+        await pumpSheet(tester);
+
+        // Expense is default: blush-rose canvas, crimson amount, cart hero badge
+        expect(find.byIcon(Icons.shopping_cart_rounded), findsOneWidget);
+        final Text expenseAmount = tester.widget<Text>(find.text('฿0'));
+        expect(expenseAmount.style?.color, const Color(0xFFA81010));
+
+        // Selecting an expense category renders white label on filled crimson card
+        await tester.tap(find.text('อาหาร'));
+        await tester.pumpAndSettle();
+        final Text selectedFoodLabel = tester.widget<Text>(find.text('อาหาร'));
+        expect(selectedFoodLabel.style?.color, Colors.white);
+
+        // Switching to Income restores emerald palette
+        await tester.tap(find.text('รายรับ'));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.shopping_cart_rounded), findsNothing);
+        final Text incomeAmount = tester.widget<Text>(find.text('฿0'));
+        expect(incomeAmount.style?.color, const Color(0xFF064E3B));
+
+        // Switching to Transfer activates blue transfer palette
+        await tester.tap(find.text('โอนเงิน'));
+        await tester.pumpAndSettle();
+        final Text transferAmount = tester.widget<Text>(find.text('฿0'));
+        expect(transferAmount.style?.color, const Color(0xFF1E3A8A));
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }
 

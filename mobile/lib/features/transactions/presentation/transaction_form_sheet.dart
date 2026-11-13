@@ -635,6 +635,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     required String? selectedId,
     required ValueChanged<String> onSelected,
     required AppStrings strings,
+    required _TransactionFormPalette palette,
   }) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -647,6 +648,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           accounts: accounts,
           selectedId: selectedId,
           strings: strings,
+          palette: palette,
           onSelected: (String id) {
             Navigator.of(sheetContext).pop();
             onSelected(id);
@@ -728,19 +730,26 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         '${AppDateUtils.formatShortDate(_occurredAt, language: strings.language, useBuddhistEra: useBuddhistEra)} · '
         '${_occurredAt.hour.toString().padLeft(2, '0')}:'
         '${_occurredAt.minute.toString().padLeft(2, '0')}';
+    final _TransactionFormPalette palette = _TransactionFormPalette.of(
+      _type,
+      isDark,
+    );
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBackground : const Color(0xFFF3F8F6),
-        ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(color: palette.sheetBackground),
         child: Stack(
           children: <Widget>[
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
-                  painter: _AmbientSheetRibbonPainter(isDark: isDark),
+                  painter: _AmbientSheetRibbonPainter(
+                    isDark: isDark,
+                    palette: palette,
+                  ),
                 ),
               ),
             ),
@@ -755,11 +764,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  // 1. Header with Glossy Emerald Wallet + Title/Subtitle + Close/Delete
+                  // 1. Header with Glossy Wallet Badge + Title/Subtitle + Close/Delete
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      const _GlossyWalletBadge(),
+                      _GlossyWalletBadge(palette: palette),
                       const SizedBox(width: 11),
                       Expanded(
                         child: Column(
@@ -829,6 +838,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     selectedType: _type,
                     strings: strings,
                     isDark: isDark,
+                    palette: palette,
                     onChanged: (TransactionType nextType) {
                       HapticFeedback.selectionClick();
                       setState(() {
@@ -841,9 +851,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
                   // 3. Currency & Large Amount Card
                   _AmountHeroCard(
+                    type: _type,
                     formattedAmount: _formatDisplayAmount(_amountInput),
                     subtitle: strings.tr('บาทไทย', 'Thai Baht'),
                     isDark: isDark,
+                    palette: palette,
                     onTap: () => setState(() => _showKeypad = !_showKeypad),
                   ),
 
@@ -857,30 +869,26 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                             child: _AmountKeypad(
                               onKeyTap: _onKeypadTap,
                               isDark: isDark,
+                              palette: palette,
                             ),
                           )
                         : const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 10),
 
-                  // 5. Expandable "+ เพิ่มข้อมูล" Mint Pill
+                  // 5. Expandable "+ เพิ่มข้อมูล" Pill
                   BouncyTap(
                     onTap: () {
                       HapticFeedback.selectionClick();
                       setState(() => _showExtraInfo = !_showExtraInfo);
                     },
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
                       height: 36,
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF12382C)
-                            : const Color(0xFFD6F4E6),
+                        color: palette.extraPillBg,
                         borderRadius: BorderRadius.circular(13),
-                        border: Border.all(
-                          color: isDark
-                              ? const Color(0xFF1F5D4A)
-                              : const Color(0xFFB3E6D0),
-                        ),
+                        border: Border.all(color: palette.extraPillBorder),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -890,9 +898,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                 ? Icons.remove_rounded
                                 : Icons.add_rounded,
                             size: 16,
-                            color: isDark
-                                ? const Color(0xFF6EE7B7)
-                                : const Color(0xFF065F46),
+                            color: palette.extraPillFg,
                           ),
                           const SizedBox(width: 5),
                           Text(
@@ -900,9 +906,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                             style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? const Color(0xFF6EE7B7)
-                                  : const Color(0xFF065F46),
+                              color: palette.extraPillFg,
                             ),
                           ),
                           if (!_showExtraInfo && hasExtraContent) ...<Widget>[
@@ -911,9 +915,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                               width: 7,
                               height: 7,
                               decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF34D399)
-                                    : const Color(0xFF059669),
+                                color: palette.extraPillDot,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -925,9 +927,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                             child: Icon(
                               Icons.keyboard_arrow_down_rounded,
                               size: 18,
-                              color: isDark
-                                  ? const Color(0xFF6EE7B7)
-                                  : const Color(0xFF065F46),
+                              color: palette.extraPillFg,
                             ),
                           ),
                         ],
@@ -951,9 +951,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                         : Colors.white,
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: isDark
-                                          ? Colors.white12
-                                          : const Color(0xFFE2ECE8),
+                                      color: palette.cardBorder,
                                     ),
                                   ),
                                   child: TextFormField(
@@ -968,15 +966,19 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                       border: InputBorder.none,
                                       enabledBorder: InputBorder.none,
                                       focusedBorder: InputBorder.none,
-                                      prefixIcon: const Icon(
+                                      prefixIcon: Icon(
                                         Icons.storefront_outlined,
-                                        color: Color(0xFF0D9488),
+                                        color: palette.accentIcon,
                                       ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
-                                _buildLocalAttachmentSection(theme, strings),
+                                _buildLocalAttachmentSection(
+                                  theme,
+                                  strings,
+                                  palette,
+                                ),
                               ],
                             ),
                           )
@@ -1046,10 +1048,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: <Widget>[
-                                  const Icon(
+                                  Icon(
                                     Icons.add_rounded,
                                     size: 16,
-                                    color: Color(0xFF059669),
+                                    color: palette.accentIcon,
                                   ),
                                   const SizedBox(width: 3),
                                   Flexible(
@@ -1057,10 +1059,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                       strings.addCategory,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF059669),
+                                        color: palette.accentIcon,
                                       ),
                                     ),
                                   ),
@@ -1083,7 +1085,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         itemBuilder: (BuildContext context, int index) {
                           final CategoryModel cat = availableCategories[index];
                           final bool selected = cat.id == _categoryId;
-                          final Color catColor = AppColors.fromHex(cat.color);
+                          final bool solidSelected =
+                              selected && palette.fillSelectedCategory;
+                          final Color catIconColor = solidSelected
+                              ? Colors.white
+                              : (palette.uniformCategoryIconColor ??
+                                    AppColors.fromHex(cat.color));
                           return GestureDetector(
                             onTap: () {
                               HapticFeedback.selectionClick();
@@ -1102,28 +1109,34 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                     horizontal: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: selected
-                                        ? (isDark
-                                              ? const Color(0xFF103C2F)
-                                              : const Color(0xFFE7F7F0))
-                                        : (isDark
-                                              ? AppColors.darkSurface
-                                              : Colors.white),
+                                    color: selected && !solidSelected
+                                        ? palette.selectedCategoryBg
+                                        : (solidSelected
+                                              ? null
+                                              : (isDark
+                                                    ? AppColors.darkSurface
+                                                    : Colors.white)),
+                                    gradient: solidSelected
+                                        ? LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors:
+                                                palette.selectedCategoryFillGradient,
+                                          )
+                                        : null,
                                     borderRadius: BorderRadius.circular(15),
                                     border: Border.all(
                                       color: selected
-                                          ? const Color(0xFF0A6B50)
-                                          : (isDark
-                                                ? Colors.white12
-                                                : const Color(0xFFE5ECE9)),
+                                          ? palette.selectedCategoryBorder
+                                          : palette.categoryCardBorder,
                                       width: selected ? 1.6 : 1.0,
                                     ),
                                     boxShadow: <BoxShadow>[
                                       BoxShadow(
                                         color: selected
-                                            ? const Color(0x1F0A6B50)
+                                            ? palette.selectedCategoryShadow
                                             : const Color(0x090F172A),
-                                        blurRadius: 6,
+                                        blurRadius: selected ? 8 : 6,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
@@ -1134,7 +1147,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                       Icon(
                                         IconMapper.resolve(cat.icon),
                                         size: 22,
-                                        color: catColor,
+                                        color: catIconColor,
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
@@ -1147,15 +1160,17 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                           fontWeight: selected
                                               ? FontWeight.w700
                                               : FontWeight.w500,
-                                          color: isDark
+                                          color: solidSelected
                                               ? Colors.white
-                                              : const Color(0xFF1E293B),
+                                              : (isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF1E293B)),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                if (selected)
+                                if (selected && !solidSelected)
                                   Positioned(
                                     top: -5,
                                     right: -4,
@@ -1163,7 +1178,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                       width: 18,
                                       height: 18,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF0A6B50),
+                                        color: palette.selectedCategoryBorder,
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                           color: isDark
@@ -1193,6 +1208,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   _CompactDateRow(
                     dateText: dateText,
                     isDark: isDark,
+                    palette: palette,
                     onTap: _pickDateTime,
                   ),
                   const SizedBox(height: 8),
@@ -1202,6 +1218,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     _CompactAddAccountPill(
                       label: strings.addAccount,
                       isDark: isDark,
+                      palette: palette,
                       onTap: () async {
                         final AccountModel? created =
                             await showModalBottomSheet<AccountModel>(
@@ -1223,6 +1240,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       selectedAccount: selectedAccount,
                       fallbackText: strings.tr('เลือกบัญชี', 'Select account'),
                       isDark: isDark,
+                      palette: palette,
                       onTap: () => _openAccountPicker(
                         title: _type == TransactionType.transfer
                             ? strings.fromAccount
@@ -1230,6 +1248,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         accounts: accounts,
                         selectedId: _accountId,
                         strings: strings,
+                        palette: palette,
                         onSelected: (String id) =>
                             setState(() => _accountId = id),
                       ),
@@ -1244,11 +1263,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           'Select destination',
                         ),
                         isDark: isDark,
+                        palette: palette,
                         onTap: () => _openAccountPicker(
                           title: strings.toAccount,
                           accounts: accounts,
                           selectedId: _toAccountId,
                           strings: strings,
+                          palette: palette,
                           onSelected: (String id) =>
                               setState(() => _toAccountId = id),
                         ),
@@ -1267,16 +1288,18 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       'e.g. Groceries...',
                     ),
                     isDark: isDark,
+                    palette: palette,
                   ),
 
                   const SizedBox(height: 12),
 
-                  // 10. Primary Emerald Save CTA Pill
-                  _PrimaryEmeraldButton(
+                  // 10. Primary Save CTA Pill
+                  _PrimarySubmitButton(
                     label: widget.existing == null
                         ? strings.tr('บันทึกรายการ', 'Save Transaction')
                         : strings.save,
                     saving: _saving,
+                    palette: palette,
                     onTap: _saving ? null : () => _submit(accounts),
                   ),
                 ],
@@ -1288,7 +1311,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildLocalAttachmentSection(ThemeData theme, AppStrings strings) {
+  Widget _buildLocalAttachmentSection(
+    ThemeData theme,
+    AppStrings strings,
+    _TransactionFormPalette palette,
+  ) {
     final Uint8List? activeBytes =
         _stagedImage?.bytes ??
         (_removeExistingImage ? null : _existingImageBytes);
@@ -1316,7 +1343,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               Icon(
                 Icons.receipt_long_rounded,
                 size: 18,
-                color: theme.colorScheme.primary,
+                color: palette.accentIcon,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1450,16 +1477,384 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 }
 
+class _TransactionFormPalette {
+  const _TransactionFormPalette({
+    required this.sheetBackground,
+    required this.ribbonStart,
+    required this.ribbonMid,
+    required this.ribbonEnd,
+    required this.ribbonAccent,
+    required this.bottomGlow,
+    required this.badgeGradient,
+    required this.badgeShadow,
+    required this.walletClaspColor,
+    required this.walletClaspDotColor,
+    required this.segmentActiveGradient,
+    required this.segmentActiveShadow,
+    required this.expenseCoinSelectedColor,
+    required this.cardBorder,
+    required this.heroBorder,
+    required this.heroGlow,
+    required this.heroBadgeGradient,
+    required this.heroBadgeShadow,
+    required this.heroAmountColor,
+    required this.heroStreakColors,
+    required this.actionKeyBg,
+    required this.actionKeyBorder,
+    required this.actionKeyFg,
+    required this.extraPillBg,
+    required this.extraPillBorder,
+    required this.extraPillFg,
+    required this.extraPillDot,
+    required this.accentIcon,
+    required this.uniformCategoryIconColor,
+    required this.fillSelectedCategory,
+    required this.selectedCategoryFillGradient,
+    required this.selectedCategoryBg,
+    required this.selectedCategoryBorder,
+    required this.selectedCategoryShadow,
+    required this.categoryCardBorder,
+    required this.noteFieldFill,
+    required this.submitGradient,
+    required this.submitShadow,
+    required this.pickerBalanceColor,
+  });
+
+  factory _TransactionFormPalette.of(TransactionType type, bool isDark) {
+    switch (type) {
+      case TransactionType.expense:
+        return _TransactionFormPalette(
+          sheetBackground: isDark
+              ? AppColors.darkBackground
+              : const Color(0xFFFAF2F2),
+          ribbonStart: isDark
+              ? const Color(0xFF7F1D1D)
+              : const Color(0xFFFBC5C5),
+          ribbonMid: isDark
+              ? const Color(0xFFB91C1C)
+              : const Color(0xFFF26D6D),
+          ribbonEnd: isDark
+              ? const Color(0xFFEF4444)
+              : const Color(0xFFD92D2D),
+          ribbonAccent: isDark
+              ? const Color(0xFFDC2626)
+              : const Color(0xFFE53935),
+          bottomGlow: const Color(0xFFF87171),
+          badgeGradient: const <Color>[
+            Color(0xFFEF2B2B),
+            Color(0xFFB71212),
+          ],
+          badgeShadow: const Color(0x30B71212),
+          walletClaspColor: const Color(0xFF8C0D0D),
+          walletClaspDotColor: const Color(0xFFFCA5A5),
+          segmentActiveGradient: const <Color>[
+            Color(0xFFA61414),
+            Color(0xFF830B0B),
+          ],
+          segmentActiveShadow: const Color(0x28830B0B),
+          expenseCoinSelectedColor: Colors.white,
+          cardBorder: isDark ? Colors.white12 : const Color(0xFFF0DEDE),
+          heroBorder: isDark
+              ? const Color(0xFF5C1E24)
+              : const Color(0xFFF5CACA),
+          heroGlow: isDark
+              ? const Color(0x22000000)
+              : const Color(0x20DF2626),
+          heroBadgeGradient: const <Color>[
+            Color(0xFFEB2626),
+            Color(0xFFBE1212),
+          ],
+          heroBadgeShadow: const Color(0x33BE1212),
+          heroAmountColor: isDark
+              ? const Color(0xFFFCA5A5)
+              : const Color(0xFFA81010),
+          heroStreakColors: <Color>[
+            const Color(0xFFEF4444).withValues(alpha: 0.75),
+            const Color(0xFFFECACA).withValues(alpha: 0.0),
+          ],
+          actionKeyBg: isDark
+              ? const Color(0xFF3E1C22)
+              : const Color(0xFFF6DFDF),
+          actionKeyBorder: isDark
+              ? const Color(0xFF5B2830)
+              : const Color(0xFFEBC8C9),
+          actionKeyFg: isDark ? Colors.white70 : const Color(0xFF3F2021),
+          extraPillBg: isDark
+              ? const Color(0xFF42181D)
+              : const Color(0xFFF6CECE),
+          extraPillBorder: isDark
+              ? const Color(0xFF6B242B)
+              : const Color(0xFFEBAAAA),
+          extraPillFg: isDark
+              ? const Color(0xFFFCA5A5)
+              : const Color(0xFF4A0E0E),
+          extraPillDot: isDark
+              ? const Color(0xFFF87171)
+              : const Color(0xFFDC2626),
+          accentIcon: isDark
+              ? const Color(0xFFFCA5A5)
+              : const Color(0xFFB31212),
+          uniformCategoryIconColor: isDark
+              ? const Color(0xFFF87171)
+              : const Color(0xFFD91E1E),
+          fillSelectedCategory: true,
+          selectedCategoryFillGradient: isDark
+              ? const <Color>[Color(0xFFC81E1E), Color(0xFF991B1B)]
+              : const <Color>[Color(0xFFB81414), Color(0xFF960E0E)],
+          selectedCategoryBg: isDark
+              ? const Color(0xFF3B1318)
+              : const Color(0xFFFDECEC),
+          selectedCategoryBorder: isDark
+              ? const Color(0xFFF87171)
+              : const Color(0xFF960E0E),
+          selectedCategoryShadow: const Color(0x28960E0E),
+          categoryCardBorder: isDark
+              ? Colors.white12
+              : const Color(0xFFF0DADA),
+          noteFieldFill: isDark
+              ? AppColors.darkSurfaceSubtle
+              : const Color(0xFFF1ECEC),
+          submitGradient: const <Color>[
+            Color(0xFFDF2929),
+            Color(0xFFB71414),
+          ],
+          submitShadow: const Color(0x38B71414),
+          pickerBalanceColor: isDark
+              ? const Color(0xFFFCA5A5)
+              : const Color(0xFF991B1B),
+        );
+      case TransactionType.income:
+        return _TransactionFormPalette(
+          sheetBackground: isDark
+              ? AppColors.darkBackground
+              : const Color(0xFFF3F8F6),
+          ribbonStart: const Color(0xFFB4ECDA),
+          ribbonMid: const Color(0xFF4CC69E),
+          ribbonEnd: const Color(0xFF0E9F77),
+          ribbonAccent: const Color(0xFF10B981),
+          bottomGlow: const Color(0xFF34D399),
+          badgeGradient: const <Color>[
+            Color(0xFF1FD495),
+            Color(0xFF088762),
+          ],
+          badgeShadow: const Color(0x30088762),
+          walletClaspColor: const Color(0xFF076B4E),
+          walletClaspDotColor: const Color(0xFFA7F3D0),
+          segmentActiveGradient: const <Color>[
+            Color(0xFF0E7458),
+            Color(0xFF065640),
+          ],
+          segmentActiveShadow: const Color(0x28065640),
+          expenseCoinSelectedColor: const Color(0xFFFACC15),
+          cardBorder: isDark ? Colors.white12 : const Color(0xFFE3ECE9),
+          heroBorder: isDark
+              ? const Color(0xFF1F5445)
+              : const Color(0xFFC8EBDD),
+          heroGlow: isDark
+              ? const Color(0x22000000)
+              : const Color(0x2010B981),
+          heroBadgeGradient: const <Color>[
+            Color(0xFF28D694),
+            Color(0xFF068E64),
+          ],
+          heroBadgeShadow: const Color(0x33068E64),
+          heroAmountColor: isDark
+              ? const Color(0xFF6EE7B7)
+              : const Color(0xFF064E3B),
+          heroStreakColors: <Color>[
+            const Color(0xFF34D399).withValues(alpha: 0.75),
+            const Color(0xFFA7F3D0).withValues(alpha: 0.0),
+          ],
+          actionKeyBg: isDark
+              ? const Color(0xFF283548)
+              : const Color(0xFFE5ECEF),
+          actionKeyBorder: isDark ? Colors.white12 : const Color(0xFFD6E0E5),
+          actionKeyFg: isDark ? Colors.white70 : const Color(0xFF334155),
+          extraPillBg: isDark
+              ? const Color(0xFF12382C)
+              : const Color(0xFFD6F4E6),
+          extraPillBorder: isDark
+              ? const Color(0xFF1F5D4A)
+              : const Color(0xFFB3E6D0),
+          extraPillFg: isDark
+              ? const Color(0xFF6EE7B7)
+              : const Color(0xFF065F46),
+          extraPillDot: isDark
+              ? const Color(0xFF34D399)
+              : const Color(0xFF059669),
+          accentIcon: const Color(0xFF059669),
+          uniformCategoryIconColor: null,
+          fillSelectedCategory: false,
+          selectedCategoryFillGradient: const <Color>[
+            Color(0xFF0E7458),
+            Color(0xFF065640),
+          ],
+          selectedCategoryBg: isDark
+              ? const Color(0xFF103C2F)
+              : const Color(0xFFE7F7F0),
+          selectedCategoryBorder: const Color(0xFF0A6B50),
+          selectedCategoryShadow: const Color(0x1F0A6B50),
+          categoryCardBorder: isDark
+              ? Colors.white12
+              : const Color(0xFFE5ECE9),
+          noteFieldFill: isDark
+              ? AppColors.darkSurfaceSubtle
+              : const Color(0xFFF0F4F6),
+          submitGradient: const <Color>[
+            Color(0xFF14A47B),
+            Color(0xFF06694E),
+          ],
+          submitShadow: const Color(0x3806694E),
+          pickerBalanceColor: isDark
+              ? const Color(0xFF6EE7B7)
+              : const Color(0xFF065F46),
+        );
+      case TransactionType.transfer:
+        return _TransactionFormPalette(
+          sheetBackground: isDark
+              ? AppColors.darkBackground
+              : const Color(0xFFF2F6FC),
+          ribbonStart: const Color(0xFFBFDBFE),
+          ribbonMid: const Color(0xFF60A5FA),
+          ribbonEnd: const Color(0xFF2563EB),
+          ribbonAccent: const Color(0xFF3B82F6),
+          bottomGlow: const Color(0xFF60A5FA),
+          badgeGradient: const <Color>[
+            Color(0xFF3B82F6),
+            Color(0xFF1D4ED8),
+          ],
+          badgeShadow: const Color(0x301D4ED8),
+          walletClaspColor: const Color(0xFF1E40AF),
+          walletClaspDotColor: const Color(0xFFBFDBFE),
+          segmentActiveGradient: const <Color>[
+            Color(0xFF2563EB),
+            Color(0xFF1E40AF),
+          ],
+          segmentActiveShadow: const Color(0x281E40AF),
+          expenseCoinSelectedColor: const Color(0xFFFACC15),
+          cardBorder: isDark ? Colors.white12 : const Color(0xFFDCE6F4),
+          heroBorder: isDark
+              ? const Color(0xFF1E3A5F)
+              : const Color(0xFFC7DBFA),
+          heroGlow: isDark
+              ? const Color(0x22000000)
+              : const Color(0x203B82F6),
+          heroBadgeGradient: const <Color>[
+            Color(0xFF60A5FA),
+            Color(0xFF1D4ED8),
+          ],
+          heroBadgeShadow: const Color(0x331D4ED8),
+          heroAmountColor: isDark
+              ? const Color(0xFF93C5FD)
+              : const Color(0xFF1E3A8A),
+          heroStreakColors: <Color>[
+            const Color(0xFF60A5FA).withValues(alpha: 0.75),
+            const Color(0xFFBFDBFE).withValues(alpha: 0.0),
+          ],
+          actionKeyBg: isDark
+              ? const Color(0xFF1E2D45)
+              : const Color(0xFFE2EBF7),
+          actionKeyBorder: isDark ? Colors.white12 : const Color(0xFFCFDDF0),
+          actionKeyFg: isDark ? Colors.white70 : const Color(0xFF1E3A5F),
+          extraPillBg: isDark
+              ? const Color(0xFF172844)
+              : const Color(0xFFDBEAFE),
+          extraPillBorder: isDark
+              ? const Color(0xFF284370)
+              : const Color(0xFFBFDBFE),
+          extraPillFg: isDark
+              ? const Color(0xFF93C5FD)
+              : const Color(0xFF1E40AF),
+          extraPillDot: isDark
+              ? const Color(0xFF60A5FA)
+              : const Color(0xFF2563EB),
+          accentIcon: isDark
+              ? const Color(0xFF93C5FD)
+              : const Color(0xFF1D4ED8),
+          uniformCategoryIconColor: null,
+          fillSelectedCategory: false,
+          selectedCategoryFillGradient: const <Color>[
+            Color(0xFF2563EB),
+            Color(0xFF1E40AF),
+          ],
+          selectedCategoryBg: isDark
+              ? const Color(0xFF172844)
+              : const Color(0xFFEFF6FF),
+          selectedCategoryBorder: const Color(0xFF1D4ED8),
+          selectedCategoryShadow: const Color(0x1F1D4ED8),
+          categoryCardBorder: isDark
+              ? Colors.white12
+              : const Color(0xFFDCE6F4),
+          noteFieldFill: isDark
+              ? AppColors.darkSurfaceSubtle
+              : const Color(0xFFEDF2FA),
+          submitGradient: const <Color>[
+            Color(0xFF3B82F6),
+            Color(0xFF1D4ED8),
+          ],
+          submitShadow: const Color(0x381D4ED8),
+          pickerBalanceColor: isDark
+              ? const Color(0xFF93C5FD)
+              : const Color(0xFF1E40AF),
+        );
+    }
+  }
+
+  final Color sheetBackground;
+  final Color ribbonStart;
+  final Color ribbonMid;
+  final Color ribbonEnd;
+  final Color ribbonAccent;
+  final Color bottomGlow;
+  final List<Color> badgeGradient;
+  final Color badgeShadow;
+  final Color walletClaspColor;
+  final Color walletClaspDotColor;
+  final List<Color> segmentActiveGradient;
+  final Color segmentActiveShadow;
+  final Color expenseCoinSelectedColor;
+  final Color cardBorder;
+  final Color heroBorder;
+  final Color heroGlow;
+  final List<Color> heroBadgeGradient;
+  final Color heroBadgeShadow;
+  final Color heroAmountColor;
+  final List<Color> heroStreakColors;
+  final Color actionKeyBg;
+  final Color actionKeyBorder;
+  final Color actionKeyFg;
+  final Color extraPillBg;
+  final Color extraPillBorder;
+  final Color extraPillFg;
+  final Color extraPillDot;
+  final Color accentIcon;
+  final Color? uniformCategoryIconColor;
+  final bool fillSelectedCategory;
+  final List<Color> selectedCategoryFillGradient;
+  final Color selectedCategoryBg;
+  final Color selectedCategoryBorder;
+  final Color selectedCategoryShadow;
+  final Color categoryCardBorder;
+  final Color noteFieldFill;
+  final List<Color> submitGradient;
+  final Color submitShadow;
+  final Color pickerBalanceColor;
+}
+
 class _AmbientSheetRibbonPainter extends CustomPainter {
-  const _AmbientSheetRibbonPainter({required this.isDark});
+  const _AmbientSheetRibbonPainter({
+    required this.isDark,
+    required this.palette,
+  });
 
   final bool isDark;
+  final _TransactionFormPalette palette;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double alphaScale = isDark ? 0.14 : 0.42;
+    final double alphaScale = isDark ? 0.16 : 0.42;
 
-    // Top-right sweeping mint-emerald silk ribbon glow
+    // Top-right sweeping silk ribbon glow matched to active transaction type
     final Path ribbonA = Path()
       ..moveTo(size.width * 0.46, 0)
       ..quadraticBezierTo(
@@ -1477,9 +1872,9 @@ class _AmbientSheetRibbonPainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: <Color>[
-          const Color(0xFFB4ECDA).withValues(alpha: alphaScale * 0.5),
-          const Color(0xFF4CC69E).withValues(alpha: alphaScale * 0.85),
-          const Color(0xFF0E9F77).withValues(alpha: alphaScale * 0.4),
+          palette.ribbonStart.withValues(alpha: alphaScale * 0.5),
+          palette.ribbonMid.withValues(alpha: alphaScale * 0.85),
+          palette.ribbonEnd.withValues(alpha: alphaScale * 0.4),
         ],
       ).createShader(Rect.fromLTWH(size.width * 0.45, 0, size.width * 0.55, 160));
     canvas.drawPath(ribbonA, ribbonPaintA);
@@ -1497,14 +1892,13 @@ class _AmbientSheetRibbonPainter extends CustomPainter {
     canvas.drawPath(
       ribbonB,
       Paint()
-        ..color = const Color(0xFF10B981).withValues(alpha: alphaScale * 0.45),
+        ..color = palette.ribbonAccent.withValues(alpha: alphaScale * 0.45),
     );
 
-    // Subtle soft glow near top-right & bottom-left
     final Paint softGlow = Paint()
       ..shader = RadialGradient(
         colors: <Color>[
-          const Color(0xFF34D399).withValues(alpha: isDark ? 0.08 : 0.14),
+          palette.bottomGlow.withValues(alpha: isDark ? 0.08 : 0.14),
           Colors.transparent,
         ],
       ).createShader(
@@ -1522,30 +1916,34 @@ class _AmbientSheetRibbonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AmbientSheetRibbonPainter oldDelegate) {
-    return oldDelegate.isDark != isDark;
+    return oldDelegate.isDark != isDark ||
+        oldDelegate.palette.ribbonEnd != palette.ribbonEnd;
   }
 }
 
 class _GlossyWalletBadge extends StatelessWidget {
-  const _GlossyWalletBadge();
+  const _GlossyWalletBadge({required this.palette});
+
+  final _TransactionFormPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
       width: 38,
       height: 36,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF1FD495), Color(0xFF088762)],
+          colors: palette.badgeGradient,
         ),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Color(0x30088762),
+            color: palette.badgeShadow,
             blurRadius: 8,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -1572,9 +1970,9 @@ class _GlossyWalletBadge extends StatelessWidget {
             bottom: 11,
             width: 11,
             child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF076B4E),
-                borderRadius: BorderRadius.horizontal(
+              decoration: BoxDecoration(
+                color: palette.walletClaspColor,
+                borderRadius: const BorderRadius.horizontal(
                   left: Radius.circular(6),
                 ),
               ),
@@ -1583,8 +1981,8 @@ class _GlossyWalletBadge extends StatelessWidget {
               child: Container(
                 width: 4,
                 height: 4,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFA7F3D0),
+                decoration: BoxDecoration(
+                  color: palette.walletClaspDotColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1601,12 +1999,14 @@ class _TypeSegmentedPillBar extends StatelessWidget {
     required this.selectedType,
     required this.strings,
     required this.isDark,
+    required this.palette,
     required this.onChanged,
   });
 
   final TransactionType selectedType;
   final AppStrings strings;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final ValueChanged<TransactionType> onChanged;
 
   @override
@@ -1623,9 +2023,7 @@ class _TypeSegmentedPillBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isDark ? Colors.white12 : const Color(0xFFE3ECE9),
-        ),
+        border: Border.all(color: palette.cardBorder),
         boxShadow: const <BoxShadow>[
           BoxShadow(
             color: Color(0x0B0F172A),
@@ -1643,6 +2041,7 @@ class _TypeSegmentedPillBar extends StatelessWidget {
                 label: _labelFor(order[i]),
                 selected: order[i] == selectedType,
                 isDark: isDark,
+                palette: palette,
                 onTap: () => onChanged(order[i]),
               ),
             ),
@@ -1678,6 +2077,7 @@ class _TypePillSegment extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
@@ -1685,6 +2085,7 @@ class _TypePillSegment extends StatelessWidget {
   final String label;
   final bool selected;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
@@ -1699,7 +2100,7 @@ class _TypePillSegment extends StatelessWidget {
         typeGlyph = Icon(
           selected ? Icons.monetization_on_rounded : Icons.south_west_rounded,
           size: 15,
-          color: selected ? const Color(0xFFFACC15) : fg,
+          color: selected ? palette.expenseCoinSelectedColor : fg,
         );
       case TransactionType.income:
         typeGlyph = Icon(
@@ -1711,7 +2112,7 @@ class _TypePillSegment extends StatelessWidget {
         typeGlyph = Icon(
           Icons.swap_horiz_rounded,
           size: 16,
-          color: selected ? const Color(0xFF93C5FD) : fg,
+          color: selected ? const Color(0xFFDBEAFE) : fg,
         );
     }
 
@@ -1725,18 +2126,18 @@ class _TypePillSegment extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           gradient: selected
-              ? const LinearGradient(
+              ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: <Color>[Color(0xFF0E7458), Color(0xFF065640)],
+                  colors: palette.segmentActiveGradient,
                 )
               : null,
           boxShadow: selected
-              ? const <BoxShadow>[
+              ? <BoxShadow>[
                   BoxShadow(
-                    color: Color(0x28065640),
+                    color: palette.segmentActiveShadow,
                     blurRadius: 6,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ]
               : null,
@@ -1777,41 +2178,65 @@ class _TypePillSegment extends StatelessWidget {
 
 class _AmountHeroCard extends StatelessWidget {
   const _AmountHeroCard({
+    required this.type,
     required this.formattedAmount,
     required this.subtitle,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
+  final TransactionType type;
   final String formattedAmount;
   final String subtitle;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final Widget badgeChild;
+    switch (type) {
+      case TransactionType.expense:
+        badgeChild = const Icon(
+          Icons.shopping_cart_rounded,
+          color: Colors.white,
+          size: 20,
+        );
+      case TransactionType.income:
+        badgeChild = const Text(
+          '฿',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            height: 1.0,
+          ),
+        );
+      case TransactionType.transfer:
+        badgeChild = const Icon(
+          Icons.swap_horiz_rounded,
+          color: Colors.white,
+          size: 22,
+        );
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
         InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isDark
-                    ? const Color(0xFF1F5445)
-                    : const Color(0xFFC8EBDD),
-                width: 1.2,
-              ),
+              border: Border.all(color: palette.heroBorder, width: 1.2),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: isDark
-                      ? const Color(0x22000000)
-                      : const Color(0x2010B981),
+                  color: palette.heroGlow,
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -1819,34 +2244,27 @@ class _AmountHeroCard extends StatelessWidget {
             ),
             child: Row(
               children: <Widget>[
-                Container(
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
                   width: 42,
                   height: 42,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: <Color>[Color(0xFF28D694), Color(0xFF068E64)],
+                      colors: palette.heroBadgeGradient,
                     ),
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color: Color(0x33068E64),
+                        color: palette.heroBadgeShadow,
                         blurRadius: 8,
-                        offset: Offset(0, 3),
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
-                    '฿',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      height: 1.0,
-                    ),
-                  ),
+                  child: badgeChild,
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -1885,9 +2303,7 @@ class _AmountHeroCard extends StatelessWidget {
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.6,
-                          color: isDark
-                              ? const Color(0xFF6EE7B7)
-                              : const Color(0xFF064E3B),
+                          color: palette.heroAmountColor,
                         ),
                       ),
                     ),
@@ -1908,12 +2324,7 @@ class _AmountHeroCard extends StatelessWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
-                  gradient: LinearGradient(
-                    colors: <Color>[
-                      const Color(0xFF34D399).withValues(alpha: 0.75),
-                      const Color(0xFFA7F3D0).withValues(alpha: 0.0),
-                    ],
-                  ),
+                  gradient: LinearGradient(colors: palette.heroStreakColors),
                 ),
               ),
             ),
@@ -1925,10 +2336,15 @@ class _AmountHeroCard extends StatelessWidget {
 }
 
 class _AmountKeypad extends StatelessWidget {
-  const _AmountKeypad({required this.onKeyTap, required this.isDark});
+  const _AmountKeypad({
+    required this.onKeyTap,
+    required this.isDark,
+    required this.palette,
+  });
 
   final ValueChanged<String> onKeyTap;
   final bool isDark;
+  final _TransactionFormPalette palette;
 
   static const double _gap = 7.0;
   static const double _keyHeight = 42.0;
@@ -1959,6 +2375,7 @@ class _AmountKeypad extends StatelessWidget {
                           label: row[i],
                           isAction: row[i] == 'C' || row[i] == '⌫',
                           isDark: isDark,
+                          palette: palette,
                           onTap: () => onKeyTap(row[i]),
                         ),
                       ),
@@ -1976,6 +2393,7 @@ class _AmountKeypad extends StatelessWidget {
                     label: '.',
                     isAction: false,
                     isDark: isDark,
+                    palette: palette,
                     onTap: () => onKeyTap('.'),
                   ),
                 ),
@@ -1987,6 +2405,7 @@ class _AmountKeypad extends StatelessWidget {
                     label: '0',
                     isAction: false,
                     isDark: isDark,
+                    palette: palette,
                     onTap: () => onKeyTap('0'),
                   ),
                 ),
@@ -2004,24 +2423,26 @@ class _KeypadButton extends StatelessWidget {
     required this.label,
     required this.isAction,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
   final String label;
   final bool isAction;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final Color bgColor = isAction
-        ? (isDark ? const Color(0xFF283548) : const Color(0xFFE5ECEF))
+        ? palette.actionKeyBg
         : (isDark ? AppColors.darkSurface : Colors.white);
     final Color borderColor = isAction
-        ? (isDark ? Colors.white12 : const Color(0xFFD6E0E5))
-        : (isDark ? Colors.white10 : const Color(0xFFE3EAE8));
+        ? palette.actionKeyBorder
+        : palette.cardBorder;
     final Color fgColor = isAction
-        ? (isDark ? Colors.white70 : const Color(0xFF334155))
+        ? palette.actionKeyFg
         : (isDark ? Colors.white : const Color(0xFF0F172A));
 
     return BouncyTap(
@@ -2068,11 +2489,13 @@ class _CompactDateRow extends StatelessWidget {
   const _CompactDateRow({
     required this.dateText,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
   final String dateText;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
@@ -2088,9 +2511,7 @@ class _CompactDateRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? Colors.white12 : const Color(0xFFE3ECE9),
-            ),
+            border: Border.all(color: palette.cardBorder),
             boxShadow: const <BoxShadow>[
               BoxShadow(
                 color: Color(0x080F172A),
@@ -2146,11 +2567,13 @@ class _CompactAddAccountPill extends StatelessWidget {
   const _CompactAddAccountPill({
     required this.label,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
   final String label;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
@@ -2164,21 +2587,19 @@ class _CompactAddAccountPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: const Color(0xFF0D9488).withValues(alpha: 0.45),
-          ),
+          border: Border.all(color: palette.accentIcon.withValues(alpha: 0.45)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Icon(Icons.add_rounded, size: 18, color: Color(0xFF0D9488)),
+            Icon(Icons.add_rounded, size: 18, color: palette.accentIcon),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0D9488),
+                color: palette.accentIcon,
               ),
             ),
           ],
@@ -2194,6 +2615,7 @@ class _AccountPillSelector extends StatelessWidget {
     required this.selectedAccount,
     required this.fallbackText,
     required this.isDark,
+    required this.palette,
     required this.onTap,
   });
 
@@ -2201,6 +2623,7 @@ class _AccountPillSelector extends StatelessWidget {
   final AccountModel? selectedAccount;
   final String fallbackText;
   final bool isDark;
+  final _TransactionFormPalette palette;
   final VoidCallback onTap;
 
   @override
@@ -2219,9 +2642,7 @@ class _AccountPillSelector extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? Colors.white12 : const Color(0xFFE3ECE9),
-            ),
+            border: Border.all(color: palette.cardBorder),
             boxShadow: const <BoxShadow>[
               BoxShadow(
                 color: Color(0x080F172A),
@@ -2247,10 +2668,10 @@ class _AccountPillSelector extends StatelessWidget {
                   height: 26,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: <Color>[Color(0xFF1EC98D), Color(0xFF077355)],
+                      colors: palette.badgeGradient,
                     ),
                   ),
                   child: const Icon(
@@ -2313,6 +2734,7 @@ class _AccountPickerBottomSheet extends StatelessWidget {
     required this.accounts,
     required this.selectedId,
     required this.strings,
+    required this.palette,
     required this.onSelected,
     required this.onAddAccount,
   });
@@ -2321,6 +2743,7 @@ class _AccountPickerBottomSheet extends StatelessWidget {
   final List<AccountModel> accounts;
   final String? selectedId;
   final AppStrings strings;
+  final _TransactionFormPalette palette;
   final ValueChanged<String> onSelected;
   final VoidCallback onAddAccount;
 
@@ -2331,7 +2754,7 @@ class _AccountPickerBottomSheet extends StatelessWidget {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Container(
-        color: isDark ? AppColors.darkBackground : const Color(0xFFF3F8F6),
+        color: palette.sheetBackground,
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2359,6 +2782,9 @@ class _AccountPickerBottomSheet extends StatelessWidget {
                 ),
                 TextButton.icon(
                   onPressed: onAddAccount,
+                  style: TextButton.styleFrom(
+                    foregroundColor: palette.accentIcon,
+                  ),
                   icon: const Icon(Icons.add_rounded, size: 17),
                   label: Text(strings.addAccount),
                 ),
@@ -2383,17 +2809,13 @@ class _AccountPickerBottomSheet extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? (isDark
-                                  ? const Color(0xFF103C2F)
-                                  : const Color(0xFFE7F7F0))
+                            ? palette.selectedCategoryBg
                             : (isDark ? AppColors.darkSurface : Colors.white),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: selected
-                              ? const Color(0xFF0A6B50)
-                              : (isDark
-                                    ? Colors.white12
-                                    : const Color(0xFFE3ECE9)),
+                              ? palette.selectedCategoryBorder
+                              : palette.cardBorder,
                           width: selected ? 1.5 : 1.0,
                         ),
                       ),
@@ -2444,18 +2866,16 @@ class _AccountPickerBottomSheet extends StatelessWidget {
                               TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
-                                color: isDark
-                                    ? const Color(0xFF6EE7B7)
-                                    : const Color(0xFF065F46),
+                                color: palette.pickerBalanceColor,
                               ),
                             ),
                           ),
                           if (selected) ...<Widget>[
                             const SizedBox(width: 8),
-                            const Icon(
+                            Icon(
                               Icons.check_circle_rounded,
                               size: 20,
-                              color: Color(0xFF0A6B50),
+                              color: palette.selectedCategoryBorder,
                             ),
                           ],
                         ],
@@ -2478,12 +2898,14 @@ class _InlineNoteRow extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.isDark,
+    required this.palette,
   });
 
   final TextEditingController controller;
   final String label;
   final String hint;
   final bool isDark;
+  final _TransactionFormPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -2493,9 +2915,7 @@ class _InlineNoteRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? Colors.white12 : const Color(0xFFE3ECE9),
-        ),
+        border: Border.all(color: palette.cardBorder),
         boxShadow: const <BoxShadow>[
           BoxShadow(
             color: Color(0x080F172A),
@@ -2506,15 +2926,16 @@ class _InlineNoteRow extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
             width: 26,
             height: 26,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: <Color>[Color(0xFF1EC98D), Color(0xFF077355)],
+                colors: palette.badgeGradient,
               ),
             ),
             child: const Icon(
@@ -2545,9 +2966,7 @@ class _InlineNoteRow extends StatelessWidget {
               height: 34,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkSurfaceSubtle
-                    : const Color(0xFFF0F4F6),
+                color: palette.noteFieldFill,
                 borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.centerLeft,
@@ -2581,35 +3000,38 @@ class _InlineNoteRow extends StatelessWidget {
   }
 }
 
-class _PrimaryEmeraldButton extends StatelessWidget {
-  const _PrimaryEmeraldButton({
+class _PrimarySubmitButton extends StatelessWidget {
+  const _PrimarySubmitButton({
     required this.label,
     required this.saving,
+    required this.palette,
     required this.onTap,
   });
 
   final String label;
   final bool saving;
+  final _TransactionFormPalette palette;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return BouncyTap(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         height: 50,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
-            colors: <Color>[Color(0xFF14A47B), Color(0xFF06694E)],
+            colors: palette.submitGradient,
           ),
-          boxShadow: const <BoxShadow>[
+          boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Color(0x3806694E),
+              color: palette.submitShadow,
               blurRadius: 14,
-              offset: Offset(0, 5),
+              offset: const Offset(0, 5),
             ),
           ],
         ),
