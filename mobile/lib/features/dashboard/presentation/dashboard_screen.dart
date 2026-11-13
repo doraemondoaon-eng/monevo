@@ -347,45 +347,52 @@ class _MonthSelectorBar extends StatelessWidget {
           icon: Icons.chevron_left_rounded,
           onTap: onPrevious,
         ),
-        const SizedBox(width: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : const Color(0xFFE4ECE9),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: const Color(0xFF0F172A).withAlpha(isDark ? 26 : 10),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : const Color(0xFFE4ECE9),
               ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                Icons.calendar_month_outlined,
-                size: 16,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : const Color(0xFF1E293B),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withAlpha(isDark ? 26 : 10),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    size: 16,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : const Color(0xFF1E293B),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        const SizedBox(width: 24),
+        const SizedBox(width: 12),
         _MonthArrowCircleButton(
           icon: Icons.chevron_right_rounded,
           onTap: onNext,
@@ -504,16 +511,6 @@ class _NetWorthHeroCard extends StatelessWidget {
       ),
       child: Stack(
         children: <Widget>[
-          // Glowing green sparkline curve positioned on the upper-right backdrop
-          Positioned(
-            top: 48,
-            right: 0,
-            width: 215,
-            height: 112,
-            child: IgnorePointer(
-              child: HeroGrowthSparkline(points: trendPoints),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             child: Column(
@@ -579,49 +576,84 @@ class _NetWorthHeroCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                AmountText(
-                  satang: summary.netWorth,
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.8,
-                    height: 1.18,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusFill.withAlpha(220),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: statusBorder.withAlpha(130),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: AmountText(
+                              satang: summary.netWorth,
+                              style: theme.textTheme.headlineLarge?.copyWith(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.8,
+                                height: 1.15,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 11,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusFill.withAlpha(220),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: statusBorder.withAlpha(130),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  Icon(
+                                    Icons.verified_user_outlined,
+                                    size: 14,
+                                    color: Colors.white.withAlpha(240),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _financialStatusLabel(),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(
-                        Icons.verified_user_outlined,
-                        size: 14,
-                        color: Colors.white.withAlpha(240),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 90,
+                      height: 76,
+                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withAlpha(24)),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _financialStatusLabel(),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: IgnorePointer(
+                        child: HeroGrowthSparkline(points: trendPoints),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 18),
                 Row(
@@ -697,7 +729,7 @@ class _HeroSubMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(18),
         borderRadius: BorderRadius.circular(16),
@@ -706,24 +738,28 @@ class _HeroSubMetricTile extends StatelessWidget {
       child: Row(
         children: <Widget>[
           SizedBox(
-            width: 30,
-            height: 30,
+            width: 24,
+            height: 24,
             child: Center(child: icon),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 7),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withAlpha(205),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withAlpha(205),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -888,58 +924,71 @@ class _MonthlySummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const EmeraldPieIcon(size: 22),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
+                flex: 5,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const EmeraldPieIcon(size: 20),
+                      const SizedBox(width: 7),
+                      Text(
                         strings.monthlyOverview,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        softWrap: false,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: 16.5,
+                          fontSize: 15.5,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 11,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.income.withAlpha(32)
-                      : const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      '${strings.savingsRate} : $savingsText',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 12,
-                        color: isDark
-                            ? const Color(0xFF6EE7B7)
-                            : const Color(0xFF065F46),
-                        fontWeight: FontWeight.w800,
-                      ),
+              Flexible(
+                flex: 6,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
                     ),
-                    const SizedBox(width: 3),
-                    Icon(
-                      Icons.north_east_rounded,
-                      size: 13,
+                    decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF34D399)
-                          : const Color(0xFF059669),
+                          ? AppColors.income.withAlpha(32)
+                          : const Color(0xFFD1FAE5),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          '${strings.savingsRate} : $savingsText',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 12,
+                            color: isDark
+                                ? const Color(0xFF6EE7B7)
+                                : const Color(0xFF065F46),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 3),
+                        Icon(
+                          Icons.north_east_rounded,
+                          size: 13,
+                          color: isDark
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF059669),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1046,21 +1095,28 @@ class _MetricColumn extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(icon, size: 16, color: color),
-                    const SizedBox(width: 5),
-                    Text(
-                      label,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : const Color(0xFF0F172A),
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 5),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : const Color(0xFF0F172A),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 FittedBox(
@@ -1075,17 +1131,22 @@ class _MetricColumn extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: <Widget>[
-                    Text(
-                      '${strings.vsPreviousMonth} : ',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 11.5,
-                        color: theme.colorScheme.onSurfaceVariant,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '${strings.vsPreviousMonth} : ',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 11.5,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    Flexible(
-                      child: AmountText(
+                      AmountText(
                         satang: prevSatang,
                         compact: true,
                         style: theme.textTheme.labelSmall?.copyWith(
@@ -1094,8 +1155,8 @@ class _MetricColumn extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1192,43 +1253,62 @@ class _IncomeVsExpenseComparisonCardState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: AppColors.income,
-                      shape: BoxShape.circle,
-                    ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.income,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${widget.strings.income} ${(total > 0 ? incomeRatio * 100 : 0).toStringAsFixed(1)}%',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${widget.strings.income} ${(total > 0 ? incomeRatio * 100 : 0).toStringAsFixed(1)}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                ),
               ),
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: AppColors.expense,
-                      shape: BoxShape.circle,
-                    ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.expense,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${widget.strings.expense} ${(total > 0 ? expenseRatio * 100 : 0).toStringAsFixed(1)}%',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${widget.strings.expense} ${(total > 0 ? expenseRatio * 100 : 0).toStringAsFixed(1)}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -1259,7 +1339,142 @@ class _IncomeVsExpenseComparisonCardState
   }
 }
 
-class _CashflowChartCard extends StatelessWidget {
+double _niceAxisStep(double roughStep) {
+  final double safeStep = roughStep <= 0 ? 1.0 : roughStep;
+  final double exp =
+      (math.log(safeStep) / math.ln10).floorToDouble();
+  final double base = math.pow(10, exp).toDouble();
+  final double normalized = safeStep / base;
+  final double factor;
+  if (normalized <= 1.0) {
+    factor = 1.0;
+  } else if (normalized <= 2.0) {
+    factor = 2.0;
+  } else if (normalized <= 2.5) {
+    factor = 2.5;
+  } else if (normalized <= 5.0) {
+    factor = 5.0;
+  } else {
+    factor = 10.0;
+  }
+  return factor * base;
+}
+
+({double minY, double maxY, double interval}) _computePositiveBarAxis(
+  List<({String label, int income, int expense})> series,
+) {
+  int maxSatang = 0;
+  for (final ({String label, int income, int expense}) item in series) {
+    maxSatang = math.max(maxSatang, math.max(item.income, item.expense));
+  }
+  final double rawPeak = maxSatang > 0 ? maxSatang / 100.0 : 1000.0;
+  final double interval = _niceAxisStep(rawPeak / 3.0);
+  final double topTick = (rawPeak / interval).ceilToDouble() * interval;
+  return (
+    minY: 0.0,
+    maxY: topTick + (interval * 0.25),
+    interval: interval,
+  );
+}
+
+({double minY, double maxY, double interval}) _computeSignedLineAxis(
+  List<FlSpot> spots,
+) {
+  double dataMin = spots.first.y;
+  double dataMax = spots.first.y;
+  for (final FlSpot spot in spots) {
+    dataMin = math.min(dataMin, spot.y);
+    dataMax = math.max(dataMax, spot.y);
+  }
+  final double maxAbs = math.max(dataMin.abs(), dataMax.abs());
+  final double minCompactStep =
+      maxAbs >= 10000 ? 200.0 : (maxAbs >= 1000 ? 100.0 : 20.0);
+  final double rawSpan = dataMax - dataMin;
+  final double interval = math.max(
+    minCompactStep,
+    _niceAxisStep(math.max(rawSpan / 3.0, minCompactStep)),
+  );
+  double lowTick = (dataMin / interval).floorToDouble() * interval;
+  double highTick = (dataMax / interval).ceilToDouble() * interval;
+  if ((highTick - lowTick).abs() < interval * 0.5) {
+    lowTick -= interval;
+    highTick += interval;
+  }
+  return (
+    minY: lowTick - (interval * 0.25),
+    maxY: highTick + (interval * 0.25),
+    interval: interval,
+  );
+}
+
+String _formatShortDate(String isoDate) {
+  final List<String> parts = isoDate.split('-');
+  if (parts.length == 3) {
+    return '${parts[2]}/${parts[1]}';
+  }
+  return isoDate;
+}
+
+Widget _compactSegmentLabel(String label) {
+  return FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(
+      label,
+      maxLines: 1,
+      softWrap: false,
+    ),
+  );
+}
+
+ButtonStyle _compactSegmentedButtonStyle() {
+  return const ButtonStyle(
+    padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
+      EdgeInsets.symmetric(horizontal: 6),
+    ),
+    visualDensity: VisualDensity.compact,
+  );
+}
+
+Widget _buildChartYAxisTitle(ThemeData theme, double value) {
+  return Align(
+    alignment: Alignment.centerRight,
+    child: Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Text(
+        MoneyUtils.formatCompactSatang((value * 100).round()),
+        maxLines: 1,
+        softWrap: false,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 11,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildChartSwipeHint(ThemeData theme, AppStrings strings) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: <Widget>[
+      Icon(
+        Icons.swipe_outlined,
+        size: 13,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      const SizedBox(width: 4),
+      Text(
+        strings.tr('เลื่อนกราฟซ้าย-ขวาได้', 'Swipe chart horizontally'),
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 10.5,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ],
+  );
+}
+
+class _CashflowChartCard extends StatefulWidget {
   const _CashflowChartCard({
     required this.granularity,
     required this.dailyPoints,
@@ -1291,30 +1506,72 @@ class _CashflowChartCard extends StatelessWidget {
   final ValueChanged<int> onYearlyYearsChanged;
 
   @override
+  State<_CashflowChartCard> createState() => _CashflowChartCardState();
+}
+
+class _CashflowChartCardState extends State<_CashflowChartCard> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleScrollToLatest();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CashflowChartCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.granularity != widget.granularity ||
+        oldWidget.dailyDays != widget.dailyDays ||
+        oldWidget.monthlyMonths != widget.monthlyMonths ||
+        oldWidget.yearlyYears != widget.yearlyYears ||
+        oldWidget.dailyPoints.length != widget.dailyPoints.length ||
+        oldWidget.monthlyPoints.length != widget.monthlyPoints.length ||
+        oldWidget.yearlyPoints.length != widget.yearlyPoints.length) {
+      _scheduleScrollToLatest();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scheduleScrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        return;
+      }
+      final double target = _scrollController.position.maxScrollExtent;
+      if (target > 0) {
+        _scrollController.jumpTo(target);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppStrings strings = widget.strings;
     final List<({String label, int income, int expense})> series =
         <({String label, int income, int expense})>[];
 
-    switch (granularity) {
+    switch (widget.granularity) {
       case CashflowGranularity.daily:
-        for (final DailyCashflowPoint p in dailyPoints) {
-          final List<String> parts = p.date.split('-');
-          final String shortLabel = parts.length == 3
-              ? '${parts[2]}/${parts[1]}'
-              : p.date;
+        for (final DailyCashflowPoint p in widget.dailyPoints) {
           series.add((
-            label: shortLabel,
+            label: _formatShortDate(p.date),
             income: p.income,
             expense: p.expense,
           ));
         }
       case CashflowGranularity.monthly:
-        for (final CashflowPoint p in monthlyPoints) {
+        for (final CashflowPoint p in widget.monthlyPoints) {
           final String formatted = AppDateUtils.formatMonthYear(
             p.month,
             language: strings.language,
-            useBuddhistEra: useBuddhistEra,
+            useBuddhistEra: widget.useBuddhistEra,
             shortMonth: true,
           );
           series.add((
@@ -1324,9 +1581,9 @@ class _CashflowChartCard extends StatelessWidget {
           ));
         }
       case CashflowGranularity.yearly:
-        for (final YearlyCashflowPoint p in yearlyPoints) {
+        for (final YearlyCashflowPoint p in widget.yearlyPoints) {
           final int yr = int.tryParse(p.year) ?? 2026;
-          final String label = useBuddhistEra ? '${yr + 543}' : p.year;
+          final String label = widget.useBuddhistEra ? '${yr + 543}' : p.year;
           series.add((
             label: label,
             income: p.income,
@@ -1335,10 +1592,10 @@ class _CashflowChartCard extends StatelessWidget {
         }
     }
 
-    int maxSatang = 100000;
-    for (final ({String label, int income, int expense}) item in series) {
-      maxSatang = math.max(maxSatang, math.max(item.income, item.expense));
-    }
+    final ({double minY, double maxY, double interval}) axis =
+        _computePositiveBarAxis(series);
+    const double leftAxisWidth = 56.0;
+    const double chartHeight = 205.0;
 
     return PremiumCard(
       child: Column(
@@ -1356,157 +1613,310 @@ class _CashflowChartCard extends StatelessWidget {
           const SizedBox(height: 10),
           SegmentedButton<CashflowGranularity>(
             showSelectedIcon: false,
+            style: _compactSegmentedButtonStyle(),
             segments: <ButtonSegment<CashflowGranularity>>[
               ButtonSegment<CashflowGranularity>(
                 value: CashflowGranularity.daily,
-                label: Text(strings.tr('รายวัน', 'Daily')),
+                label: _compactSegmentLabel(strings.tr('รายวัน', 'Daily')),
               ),
               ButtonSegment<CashflowGranularity>(
                 value: CashflowGranularity.monthly,
-                label: Text(strings.tr('รายเดือน', 'Monthly')),
+                label: _compactSegmentLabel(strings.tr('รายเดือน', 'Monthly')),
               ),
               ButtonSegment<CashflowGranularity>(
                 value: CashflowGranularity.yearly,
-                label: Text(strings.tr('รายปี', 'Yearly')),
+                label: _compactSegmentLabel(strings.tr('รายปี', 'Yearly')),
               ),
             ],
-            selected: <CashflowGranularity>{granularity},
+            selected: <CashflowGranularity>{widget.granularity},
             onSelectionChanged: (Set<CashflowGranularity> s) =>
-                onGranularityChanged(s.first),
+                widget.onGranularityChanged(s.first),
           ),
           const SizedBox(height: 8),
-          if (granularity == CashflowGranularity.daily)
+          if (widget.granularity == CashflowGranularity.daily)
             SegmentedButton<int>(
               showSelectedIcon: false,
-              segments: const <ButtonSegment<int>>[
-                ButtonSegment<int>(value: 7, label: Text('7D')),
-                ButtonSegment<int>(value: 14, label: Text('14D')),
-                ButtonSegment<int>(value: 30, label: Text('30D')),
+              style: _compactSegmentedButtonStyle(),
+              segments: <ButtonSegment<int>>[
+                ButtonSegment<int>(
+                  value: 7,
+                  label: _compactSegmentLabel(strings.tr('7 วัน', '7D')),
+                ),
+                ButtonSegment<int>(
+                  value: 14,
+                  label: _compactSegmentLabel(strings.tr('14 วัน', '14D')),
+                ),
+                ButtonSegment<int>(
+                  value: 30,
+                  label: _compactSegmentLabel(strings.tr('30 วัน', '30D')),
+                ),
               ],
-              selected: <int>{dailyDays},
+              selected: <int>{widget.dailyDays},
               onSelectionChanged: (Set<int> s) =>
-                  onDailyDaysChanged(s.first),
+                  widget.onDailyDaysChanged(s.first),
             )
-          else if (granularity == CashflowGranularity.monthly)
+          else if (widget.granularity == CashflowGranularity.monthly)
             SegmentedButton<int>(
               showSelectedIcon: false,
-              segments: const <ButtonSegment<int>>[
-                ButtonSegment<int>(value: 3, label: Text('3M')),
-                ButtonSegment<int>(value: 6, label: Text('6M')),
-                ButtonSegment<int>(value: 12, label: Text('12M')),
+              style: _compactSegmentedButtonStyle(),
+              segments: <ButtonSegment<int>>[
+                ButtonSegment<int>(
+                  value: 3,
+                  label: _compactSegmentLabel(strings.tr('3 เดือน', '3M')),
+                ),
+                ButtonSegment<int>(
+                  value: 6,
+                  label: _compactSegmentLabel(strings.tr('6 เดือน', '6M')),
+                ),
+                ButtonSegment<int>(
+                  value: 12,
+                  label: _compactSegmentLabel(strings.tr('12 เดือน', '12M')),
+                ),
               ],
-              selected: <int>{monthlyMonths},
+              selected: <int>{widget.monthlyMonths},
               onSelectionChanged: (Set<int> s) =>
-                  onMonthlyMonthsChanged(s.first),
+                  widget.onMonthlyMonthsChanged(s.first),
             )
           else
             SegmentedButton<int>(
               showSelectedIcon: false,
-              segments: const <ButtonSegment<int>>[
-                ButtonSegment<int>(value: 3, label: Text('3Y')),
-                ButtonSegment<int>(value: 5, label: Text('5Y')),
+              style: _compactSegmentedButtonStyle(),
+              segments: <ButtonSegment<int>>[
+                ButtonSegment<int>(
+                  value: 3,
+                  label: _compactSegmentLabel(strings.tr('3 ปี', '3Y')),
+                ),
+                ButtonSegment<int>(
+                  value: 5,
+                  label: _compactSegmentLabel(strings.tr('5 ปี', '5Y')),
+                ),
               ],
-              selected: <int>{yearlyYears},
+              selected: <int>{widget.yearlyYears},
               onSelectionChanged: (Set<int> s) =>
-                  onYearlyYearsChanged(s.first),
+                  widget.onYearlyYearsChanged(s.first),
             ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           if (series.isEmpty)
             SizedBox(
               height: 180,
               child: Center(child: Text(strings.noData)),
             )
           else
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  maxY: (maxSatang / 100.0) * 1.2,
-                  gridData: const FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                  ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 54,
-                        getTitlesWidget: (double value, TitleMeta meta) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Text(
-                              MoneyUtils.formatCompactSatang(
-                                (value * 100).round(),
-                              ),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final double viewportWidth = math.max(
+                  120.0,
+                  constraints.maxWidth - leftAxisWidth,
+                );
+                final double slotWidth =
+                    widget.granularity == CashflowGranularity.daily
+                    ? 56.0
+                    : (widget.granularity == CashflowGranularity.monthly &&
+                              series.length <= 6)
+                    ? 40.0
+                    : 52.0;
+                final double desiredWidth = series.length * slotWidth;
+                final bool isScrollable = desiredWidth > viewportWidth + 1.0;
+                final double plotWidth = math.max(viewportWidth, desiredWidth);
+                final double rodWidth =
+                    widget.granularity == CashflowGranularity.daily ? 7.0 : 9.0;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: SizedBox(
+                        height: chartHeight,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            SizedBox(
+                              width: leftAxisWidth,
+                              height: chartHeight,
+                              child: AbsorbPointer(
+                                child: BarChart(
+                                  BarChartData(
+                                    minY: axis.minY,
+                                    maxY: axis.maxY,
+                                    gridData: const FlGridData(show: false),
+                                    borderData: FlBorderData(show: false),
+                                    barTouchData: BarTouchData(enabled: false),
+                                    titlesData: FlTitlesData(
+                                      topTitles: const AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      ),
+                                      rightTitles: const AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: 28,
+                                          getTitlesWidget: (_, __) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: leftAxisWidth,
+                                          interval: axis.interval,
+                                          minIncluded: true,
+                                          maxIncluded: false,
+                                          getTitlesWidget:
+                                              (double value, TitleMeta meta) =>
+                                                  _buildChartYAxisTitle(
+                                                    theme,
+                                                    value,
+                                                  ),
+                                        ),
+                                      ),
+                                    ),
+                                    barGroups: <BarChartGroupData>[
+                                      BarChartGroupData(
+                                        x: 0,
+                                        barRods: <BarChartRodData>[
+                                          BarChartRodData(
+                                            toY: 0,
+                                            width: 0,
+                                            color: Colors.transparent,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 28,
-                        getTitlesWidget: (double value, TitleMeta meta) {
-                          final int idx = value.toInt();
-                          if (idx < 0 || idx >= series.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final int step = series.length > 10 ? 3 : 1;
-                          if (idx % step != 0 && idx != series.length - 1) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              series[idx].label,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                            Expanded(
+                              child: SingleChildScrollView(
+                                key: ValueKey<String>(
+                                  'cashflow_scroll_${widget.granularity.name}_${series.length}',
+                                ),
+                                controller: _scrollController,
+                                scrollDirection: Axis.horizontal,
+                                physics: isScrollable
+                                    ? const BouncingScrollPhysics()
+                                    : const NeverScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  width: plotWidth,
+                                  height: chartHeight,
+                                  child: BarChart(
+                                    BarChartData(
+                                      alignment: BarChartAlignment.spaceAround,
+                                      minY: axis.minY,
+                                      maxY: axis.maxY,
+                                      gridData: FlGridData(
+                                        show: true,
+                                        drawVerticalLine: false,
+                                        horizontalInterval: axis.interval,
+                                      ),
+                                      borderData: FlBorderData(show: false),
+                                      titlesData: FlTitlesData(
+                                        topTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        rightTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        leftTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            reservedSize: 28,
+                                            getTitlesWidget:
+                                                (double value, TitleMeta meta) {
+                                                  final int idx = value.toInt();
+                                                  if (idx < 0 ||
+                                                      idx >= series.length) {
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  }
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 6,
+                                                        ),
+                                                    child: Text(
+                                                      series[idx].label,
+                                                      maxLines: 1,
+                                                      softWrap: false,
+                                                      style: theme
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            fontSize: 10.5,
+                                                            letterSpacing: 0,
+                                                            color: theme
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                          ),
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        ),
+                                      ),
+                                      barGroups:
+                                          List<BarChartGroupData>.generate(
+                                            series.length,
+                                            (int index) {
+                                              final ({
+                                                String label,
+                                                int income,
+                                                int expense,
+                                              })
+                                              p = series[index];
+                                              return BarChartGroupData(
+                                                x: index,
+                                                barsSpace: 3,
+                                                barRods: <BarChartRodData>[
+                                                  BarChartRodData(
+                                                    toY: p.income / 100.0,
+                                                    color: AppColors.income,
+                                                    width: rodWidth,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  BarChartRodData(
+                                                    toY: p.expense / 100.0,
+                                                    color: AppColors.expense,
+                                                    width: rodWidth,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  barGroups: List<BarChartGroupData>.generate(
-                    series.length,
-                    (int index) {
-                      final ({String label, int income, int expense}) p =
-                          series[index];
-                      final double rodWidth = series.length > 14 ? 5 : 9;
-                      return BarChartGroupData(
-                        x: index,
-                        barsSpace: 3,
-                        barRods: <BarChartRodData>[
-                          BarChartRodData(
-                            toY: p.income / 100.0,
-                            color: AppColors.income,
-                            width: rodWidth,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          BarChartRodData(
-                            toY: p.expense / 100.0,
-                            color: AppColors.expense,
-                            width: rodWidth,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
+                    if (isScrollable) ...<Widget>[
+                      const SizedBox(height: 6),
+                      _buildChartSwipeHint(theme, strings),
+                    ],
+                  ],
+                );
+              },
             ),
         ],
       ),
@@ -1757,7 +2167,7 @@ class _AccountBalanceOverviewCard extends StatelessWidget {
   }
 }
 
-class _NetWorthTrendCard extends StatelessWidget {
+class _NetWorthTrendCard extends StatefulWidget {
   const _NetWorthTrendCard({
     required this.points,
     required this.selectedDays,
@@ -1771,12 +2181,56 @@ class _NetWorthTrendCard extends StatelessWidget {
   final ValueChanged<int> onDaysChanged;
 
   @override
+  State<_NetWorthTrendCard> createState() => _NetWorthTrendCardState();
+}
+
+class _NetWorthTrendCardState extends State<_NetWorthTrendCard> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleScrollToLatest();
+  }
+
+  @override
+  void didUpdateWidget(covariant _NetWorthTrendCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedDays != widget.selectedDays ||
+        oldWidget.points.length != widget.points.length) {
+      _scheduleScrollToLatest();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scheduleScrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        return;
+      }
+      final double target = _scrollController.position.maxScrollExtent;
+      if (target > 0) {
+        _scrollController.jumpTo(target);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppStrings strings = widget.strings;
     final List<FlSpot> spots = <FlSpot>[];
-    for (int i = 0; i < points.length; i++) {
-      spots.add(FlSpot(i.toDouble(), points[i].netWorth / 100.0));
+    for (int i = 0; i < widget.points.length; i++) {
+      spots.add(FlSpot(i.toDouble(), widget.points[i].netWorth / 100.0));
     }
+
+    const double leftAxisWidth = 64.0;
+    const double chartHeight = 195.0;
 
     return PremiumCard(
       child: Column(
@@ -1791,81 +2245,267 @@ class _NetWorthTrendCard extends StatelessWidget {
           const SizedBox(height: 10),
           SegmentedButton<int>(
             showSelectedIcon: false,
-            segments: const <ButtonSegment<int>>[
-              ButtonSegment<int>(value: 7, label: Text('7D')),
-              ButtonSegment<int>(value: 30, label: Text('30D')),
-              ButtonSegment<int>(value: 90, label: Text('90D')),
-              ButtonSegment<int>(value: 365, label: Text('365D')),
+            style: _compactSegmentedButtonStyle(),
+            segments: <ButtonSegment<int>>[
+              ButtonSegment<int>(
+                value: 7,
+                label: _compactSegmentLabel(strings.tr('7 วัน', '7D')),
+              ),
+              ButtonSegment<int>(
+                value: 30,
+                label: _compactSegmentLabel(strings.tr('30 วัน', '30D')),
+              ),
+              ButtonSegment<int>(
+                value: 90,
+                label: _compactSegmentLabel(strings.tr('90 วัน', '90D')),
+              ),
+              ButtonSegment<int>(
+                value: 365,
+                label: _compactSegmentLabel(strings.tr('365 วัน', '365D')),
+              ),
             ],
-            selected: <int>{selectedDays},
-            onSelectionChanged: (Set<int> s) => onDaysChanged(s.first),
+            selected: <int>{widget.selectedDays},
+            onSelectionChanged: (Set<int> s) => widget.onDaysChanged(s.first),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           if (spots.isEmpty)
             SizedBox(
               height: 160,
               child: Center(child: Text(strings.noData)),
             )
           else
-            SizedBox(
-              height: 180,
-              child: LineChart(
-                LineChartData(
-                  clipData: const FlClipData.all(),
-                  gridData: const FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                  ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 60,
-                        getTitlesWidget: (double value, TitleMeta meta) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Text(
-                              MoneyUtils.formatCompactSatang(
-                                (value * 100).round(),
-                              ),
-                              maxLines: 1,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontSize: 11,
-                                color: theme.colorScheme.onSurfaceVariant,
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final ({double minY, double maxY, double interval}) axis =
+                    _computeSignedLineAxis(spots);
+                final double viewportWidth = math.max(
+                  120.0,
+                  constraints.maxWidth - leftAxisWidth,
+                );
+                final double desiredGap =
+                    widget.points.length > 60 ? 28.0 : 40.0;
+                final double desiredWidth = widget.points.length <= 1
+                    ? viewportWidth
+                    : ((widget.points.length - 1) * desiredGap) + 36.0;
+                final bool isScrollable = desiredWidth > viewportWidth + 1.0;
+                final double plotWidth = math.max(viewportWidth, desiredWidth);
+                final double actualGap = widget.points.length <= 1
+                    ? viewportWidth
+                    : (plotWidth - 36.0) / (widget.points.length - 1);
+                final int labelStep = math.max(
+                  1,
+                  (64.0 / math.max(1.0, actualGap)).ceil(),
+                );
+                final double minX =
+                    spots.length == 1 ? -0.5 : -0.45;
+                final double maxX =
+                    spots.length == 1 ? 0.5 : (spots.length - 1) + 0.45;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: SizedBox(
+                        height: chartHeight,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            SizedBox(
+                              width: leftAxisWidth,
+                              height: chartHeight,
+                              child: AbsorbPointer(
+                                child: LineChart(
+                                  LineChartData(
+                                    minX: 0,
+                                    maxX: 1,
+                                    minY: axis.minY,
+                                    maxY: axis.maxY,
+                                    gridData: const FlGridData(show: false),
+                                    borderData: FlBorderData(show: false),
+                                    lineTouchData:
+                                        const LineTouchData(enabled: false),
+                                    titlesData: FlTitlesData(
+                                      topTitles: const AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      ),
+                                      rightTitles: const AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: 26,
+                                          getTitlesWidget: (_, __) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: leftAxisWidth,
+                                          interval: axis.interval,
+                                          minIncluded: false,
+                                          maxIncluded: false,
+                                          getTitlesWidget:
+                                              (double value, TitleMeta meta) =>
+                                                  _buildChartYAxisTitle(
+                                                    theme,
+                                                    value,
+                                                  ),
+                                        ),
+                                      ),
+                                    ),
+                                    lineBarsData: <LineChartBarData>[
+                                      LineChartBarData(
+                                        spots: <FlSpot>[
+                                          FlSpot(0, spots.first.y),
+                                        ],
+                                        show: false,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          );
-                        },
+                            Expanded(
+                              child: SingleChildScrollView(
+                                key: ValueKey<String>(
+                                  'networth_scroll_${widget.selectedDays}_${widget.points.length}',
+                                ),
+                                controller: _scrollController,
+                                scrollDirection: Axis.horizontal,
+                                physics: isScrollable
+                                    ? const BouncingScrollPhysics()
+                                    : const NeverScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  width: plotWidth,
+                                  height: chartHeight,
+                                  child: LineChart(
+                                    LineChartData(
+                                      minX: minX,
+                                      maxX: maxX,
+                                      minY: axis.minY,
+                                      maxY: axis.maxY,
+                                      clipData: const FlClipData.all(),
+                                      gridData: FlGridData(
+                                        show: true,
+                                        drawVerticalLine: false,
+                                        horizontalInterval: axis.interval,
+                                      ),
+                                      borderData: FlBorderData(show: false),
+                                      titlesData: FlTitlesData(
+                                        topTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        rightTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        leftTitles: const AxisTitles(
+                                          sideTitles:
+                                              SideTitles(showTitles: false),
+                                        ),
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            reservedSize: 26,
+                                            interval: 1,
+                                            minIncluded: false,
+                                            maxIncluded: false,
+                                            getTitlesWidget:
+                                                (double value, TitleMeta meta) {
+                                                  if ((value -
+                                                              value
+                                                                  .roundToDouble())
+                                                          .abs() >
+                                                      0.01) {
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  }
+                                                  final int idx = value.round();
+                                                  if (idx < 0 ||
+                                                      idx >=
+                                                          widget
+                                                              .points.length) {
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  }
+                                                  final int last =
+                                                      widget.points.length - 1;
+                                                  final bool showLabel =
+                                                      idx == last ||
+                                                      (idx % labelStep == 0 &&
+                                                          (last - idx) >=
+                                                              labelStep);
+                                                  if (!showLabel) {
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  }
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 6,
+                                                        ),
+                                                    child: Text(
+                                                      _formatShortDate(
+                                                        widget.points[idx].date,
+                                                      ),
+                                                      maxLines: 1,
+                                                      softWrap: false,
+                                                      style: theme
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            fontSize: 10.5,
+                                                            letterSpacing: 0,
+                                                            color: theme
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                          ),
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        ),
+                                      ),
+                                      lineBarsData: <LineChartBarData>[
+                                        LineChartBarData(
+                                          spots: spots,
+                                          isCurved: true,
+                                          preventCurveOverShooting: true,
+                                          color: AppColors.primaryEmerald,
+                                          barWidth: 3,
+                                          isStrokeCapRound: true,
+                                          dotData: FlDotData(
+                                            show: spots.length <= 1,
+                                          ),
+                                          belowBarData: BarAreaData(
+                                            show: true,
+                                            color: AppColors.primaryEmerald
+                                                .withAlpha(32),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  lineBarsData: <LineChartBarData>[
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      preventCurveOverShooting: true,
-                      color: AppColors.primaryEmerald,
-                      barWidth: 3,
-                      isStrokeCapRound: true,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: AppColors.primaryEmerald.withAlpha(32),
-                      ),
-                    ),
+                    if (isScrollable) ...<Widget>[
+                      const SizedBox(height: 6),
+                      _buildChartSwipeHint(theme, strings),
+                    ],
                   ],
-                ),
-              ),
+                );
+              },
             ),
         ],
       ),
