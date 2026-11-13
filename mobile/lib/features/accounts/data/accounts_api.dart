@@ -159,6 +159,10 @@ class AccountsApi {
       await _dio.delete<void>(
         '/accounts/$id',
         queryParameters: cascade ? <String, dynamic>{'cascade': 'true'} : null,
+        options: Options(
+          validateStatus: (int? status) =>
+              status != null && status >= 200 && status < 300,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);

@@ -108,12 +108,12 @@ export function registerTransactionRoutes(app: FastifyInstance, transactions: Tr
         tags: ['Transactions'],
         summary: 'Soft-delete a transaction and reverse its balance impact',
         params: uuidParam,
-        response: { 204: z.null() },
+        response: { 204: z.void().or(z.null()).optional() },
       },
     },
     async (req, reply) => {
       await transactions.remove(req.userId, req.params.id);
-      return reply.status(204).send(null);
+      return reply.status(204).send();
     },
   );
 }

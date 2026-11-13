@@ -50,17 +50,18 @@ export function registerErrorHandler(app: FastifyInstance): void {
       req.log.error({ err }, 'Response serialization failed');
       return reply.status(500).send({
         error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
+          code: 'SERIALIZATION_ERROR',
+          message: err.message || 'Response serialization failed',
         },
       });
     }
 
+    const errMessage = (err as Error)?.message || 'Internal server error';
     req.log.error({ err }, 'Unhandled error');
     return reply.status(500).send({
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'Internal server error',
+        message: errMessage,
       },
     });
   });

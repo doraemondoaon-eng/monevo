@@ -692,6 +692,45 @@ describe('MONEVO REST API (v1) integration suite', () => {
     expect(txCheck.json().data.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('successfully deletes an expense transaction and reverses account balance', async () => {
+    // 1) Create account
+    const acc = await app.inject({
+      method: 'POST',
+      url: '/api/v1/accounts',
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: { name: 'Delete Expense Account', type: 'cash', openingBalance: 100_00 },
+    });
+    expect(acc.statusCode).toBe(201);
+    const accId = acc.json().data.id;
+
+    // 2) Create expense transaction
+    const tx = await app.inject({
+      method: 'POST',
+      url: '/api/v1/transactions',
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: { type: 'expense', amount: 52_00, accountId: accId, occurredAt: new Date().toISOString() },
+    });
+    expect(tx.statusCode).toBe(201);
+    const txId = tx.json().data.id;
+
+    // 3) Delete transaction
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/transactions/${txId}`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    console.log('DEL EXPENSE STATUS:', del.statusCode, del.body);
+    expect(del.statusCode).toBe(204);
+
+    // 4) Verify account balance reversed back to 100_00
+    const accAfter = await app.inject({
+      method: 'GET',
+      url: `/api/v1/accounts/${accId}`,
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(accAfter.json().data.balance).toBe(100_00);
+  });
+
   it('supports cascade account deletion (soft-deleting account and its transactions)', async () => {
     // 1) Create a temporary account
     const accRes = await app.inject({

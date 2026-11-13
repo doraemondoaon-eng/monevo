@@ -72,12 +72,12 @@ export function registerCategoryRoutes(app: FastifyInstance, categories: Categor
         tags: ['Categories'],
         summary: 'Delete a category (if not used by any transaction)',
         params: uuidParam,
-        response: { 204: z.null() },
+        response: { 204: z.void().or(z.null()).optional() },
       },
     },
     async (req, reply) => {
       await categories.remove(req.userId, req.params.id);
-      return reply.status(204).send(null);
+      return reply.status(204).send();
     },
   );
 }

@@ -83,12 +83,12 @@ export function registerAccountRoutes(app: FastifyInstance, accounts: AccountsSe
         summary: 'Delete an account (optionally cascading associated transactions)',
         params: uuidParam,
         querystring: z.object({ cascade: booleanQuery.optional() }),
-        response: { 204: z.null() },
+        response: { 204: z.void().or(z.null()).optional() },
       },
     },
     async (req, reply) => {
       await accounts.remove(req.userId, req.params.id, req.query.cascade ?? false);
-      return reply.status(204).send(null);
+      return reply.status(204).send();
     },
   );
 

@@ -152,7 +152,13 @@ class TransactionsApi {
 
   Future<void> deleteTransaction(String id) async {
     try {
-      await _dio.delete<void>('/transactions/$id');
+      await _dio.delete<void>(
+        '/transactions/$id',
+        options: Options(
+          validateStatus: (int? status) =>
+              status != null && status >= 200 && status < 300,
+        ),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

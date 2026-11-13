@@ -106,7 +106,13 @@ class CategoriesApi {
 
   Future<void> deleteCategory(String id) async {
     try {
-      await _dio.delete<void>('/categories/$id');
+      await _dio.delete<void>(
+        '/categories/$id',
+        options: Options(
+          validateStatus: (int? status) =>
+              status != null && status >= 200 && status < 300,
+        ),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -134,7 +134,10 @@ export class TransactionsRepository {
   async adjustAccountBalance(accountId: string, delta: number, executor: Database = this.db): Promise<void> {
     await executor
       .update(accounts)
-      .set({ balance: sql`${accounts.balance} + ${delta}::numeric(18, 0)`, updatedAt: new Date() })
+      .set({
+        balance: sql`COALESCE(${accounts.balance}, 0) + ${Math.round(delta)}`,
+        updatedAt: new Date(),
+      })
       .where(eq(accounts.id, accountId));
   }
 
