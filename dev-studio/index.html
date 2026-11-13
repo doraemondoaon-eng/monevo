@@ -585,7 +585,7 @@
         </div>
         <div class="kv-row">
           <span class="kv-label">API Server</span>
-          <span class="kv-val">monevo-api.hostless.app</span>
+          <span class="kv-val">monevo-api-45ht.onrender.com</span>
         </div>
       </div>
 
@@ -969,7 +969,7 @@
     async function checkApiHealth() {
       const chip = document.getElementById('apiHealthChip');
       try {
-        const r = await fetch('https://monevo-api.hostless.app/health', { mode: 'cors' });
+        const r = await fetch('https://monevo-api-45ht.onrender.com/health', { mode: 'cors' });
         if (r.ok) {
           chip.textContent = 'API Online ✓';
           chip.className = 'status-chip';

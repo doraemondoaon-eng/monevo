@@ -234,7 +234,7 @@ jobs:
           flutter build apk --release --no-tree-shake-icons \
             --build-name="$VERSION_NAME" \
             --build-number="$BUILD_NUM" \
-            --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1 \
+            --dart-define=API_BASE_URL=https://monevo-api-45ht.onrender.com/api/v1 \
             --dart-define=APP_VERSION="$VERSION_NAME" \
             --dart-define=APP_BUILD_NUMBER="$BUILD_NUM" \
             --dart-define=UPDATE_MANIFEST_URL="https://github.com/${REPO_SLUG}/releases/download/v1.0.0/version.json"
@@ -264,7 +264,7 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "MONEVO Android APK (Latest)"
-          body: "ดาวน์โหลดไฟล์ **MONEVO.apk** ด้านล่างเพื่อติดตั้งลงมือถือ Android ได้ทันที (เชื่อมต่อกับ https://monevo-api.hostless.app)"
+          body: "ดาวน์โหลดไฟล์ **MONEVO.apk** ด้านล่างเพื่อติดตั้งลงมือถือ Android ได้ทันที (เชื่อมต่อกับ https://monevo-api-45ht.onrender.com)"
           files: |
             mobile/build/app/outputs/flutter-apk/MONEVO.apk
             mobile/build/app/outputs/flutter-apk/version.json

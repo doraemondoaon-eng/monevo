@@ -45,7 +45,7 @@ jobs:
           flutter build web --release \
             --base-href "/${REPO_NAME}/app/" \
             --no-tree-shake-icons \
-            --dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1 \
+            --dart-define=API_BASE_URL=https://monevo-api-45ht.onrender.com/api/v1 \
             --dart-define=APP_VERSION="$VERSION_NAME" \
             --dart-define=APP_BUILD_NUMBER="$BUILD_NUM"
 

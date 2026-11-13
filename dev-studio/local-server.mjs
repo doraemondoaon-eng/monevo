@@ -163,7 +163,7 @@ async function startFlutterWeb() {
       String(FLUTTER_PORT),
       '--web-hostname',
       '127.0.0.1',
-      '--dart-define=API_BASE_URL=https://monevo-api.hostless.app/api/v1',
+      '--dart-define=API_BASE_URL=https://monevo-api-45ht.onrender.com/api/v1',
       '--dart-define=APP_VERSION=dev-local',
       '--dart-define=APP_BUILD_NUMBER=999999',
     ],
