@@ -173,8 +173,13 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surface,
-        indicatorColor: primaryAccent.withAlpha(isDark ? 38 : 30),
-        elevation: 6,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: AppColors.income.withAlpha(isDark ? 42 : 34),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        elevation: 8,
+        shadowColor: Colors.black.withAlpha(isDark ? 40 : 14),
         height: 68,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((

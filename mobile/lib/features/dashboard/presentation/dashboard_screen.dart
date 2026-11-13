@@ -12,6 +12,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
 import '../../../core/widgets/state_views.dart';
@@ -19,9 +20,11 @@ import '../../../l10n/app_strings.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
 import '../../transactions/domain/transaction_model.dart';
+import '../../transactions/presentation/transaction_form_sheet.dart';
 import '../../transactions/presentation/transaction_tile.dart';
 import '../domain/dashboard_models.dart';
 import 'dashboard_controller.dart';
+import 'dashboard_visuals.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -37,183 +40,273 @@ class DashboardScreen extends ConsumerWidget {
     final AppStrings strings = AppStrings.of(context);
     final ThemeData theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              strings.appName,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.primaryEmerald,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.4,
+    return DashboardAmbientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          toolbarHeight: 62,
+          title: Row(
+            children: <Widget>[
+              const MonevoBrandMark(width: 36, height: 26),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      strings.appName,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.primaryEmerald,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        height: 1.1,
+                      ),
+                    ),
+                    Text(
+                      userName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              userName,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () {
-              ref.read(settingsControllerProvider.notifier).togglePrivacyMode();
-            },
-            tooltip: strings.privacyModeLabel,
-            icon: Icon(
-              settings.privacyMode
+            ],
+          ),
+          actions: <Widget>[
+            _HeaderCircleButton(
+              icon: settings.privacyMode
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
+              tooltip: strings.privacyModeLabel,
+              onTap: () {
+                ref
+                    .read(settingsControllerProvider.notifier)
+                    .togglePrivacyMode();
+              },
+            ),
+            const SizedBox(width: 10),
+            _HeaderCircleButton(
+              icon: Icons.lock_outline_rounded,
+              tooltip: strings.appLockedTitle,
+              onTap: () {
+                if (lockState.hasPin) {
+                  ref.read(appLockControllerProvider.notifier).lockNow();
+                } else {
+                  context.go('/settings');
+                }
+              },
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: ResponsiveCenter(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await ref
+                  .read(dataSyncControllerProvider.notifier)
+                  .syncAllAndFlushOfflineQueue();
+            },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 40),
+              children: <Widget>[
+                // Show sync banner at top only when syncing / offline / error
+                if (syncState.stage != SyncStage.synced) ...<Widget>[
+                  _DataSyncStatusBanner(
+                    syncState: syncState,
+                    strings: strings,
+                    onSyncOrRetry: () {
+                      ref
+                          .read(dataSyncControllerProvider.notifier)
+                          .syncAllAndFlushOfflineQueue();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                // Month Selector Bar
+                _MonthSelectorBar(
+                  selectedMonth: state.selectedMonth,
+                  language: strings.language,
+                  useBuddhistEra: settings.useBuddhistEra,
+                  onPrevious: () => ref
+                      .read(dashboardControllerProvider.notifier)
+                      .stepMonth(-1),
+                  onNext: () => ref
+                      .read(dashboardControllerProvider.notifier)
+                      .stepMonth(1),
+                ),
+                const SizedBox(height: 14),
+                if (state.isLoading && state.summary == null) ...<Widget>[
+                  const SkeletonBox(height: 220, borderRadius: 24),
+                  const SizedBox(height: 14),
+                  const SkeletonBox(height: 92, borderRadius: 18),
+                  const SizedBox(height: 14),
+                  const SkeletonBox(height: 168, borderRadius: 22),
+                ] else if (state.error != null &&
+                    state.summary == null) ...<Widget>[
+                  ErrorStateView(
+                    message: state.error!.localizedMessage(strings),
+                    onRetry: () => ref
+                        .read(dashboardControllerProvider.notifier)
+                        .refresh(),
+                  ),
+                ] else ...<Widget>[
+                  if (state.summary != null) ...<Widget>[
+                    _NetWorthHeroCard(
+                      summary: state.summary!,
+                      trendPoints: state.netWorthTrend,
+                      strings: strings,
+                    ),
+                    const SizedBox(height: 14),
+                    _QuickActionsRow(strings: strings),
+                    const SizedBox(height: 14),
+                    _MonthlySummaryCard(
+                      summary: state.summary!,
+                      strings: strings,
+                    ),
+                    const SizedBox(height: 16),
+                    _IncomeVsExpenseComparisonCard(
+                      summary: state.summary!,
+                      strings: strings,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _CashflowChartCard(
+                    granularity: state.cashflowGranularity,
+                    dailyPoints: state.dailyCashflow,
+                    dailyDays: state.dailyCashflowDays,
+                    monthlyPoints: state.cashflow,
+                    monthlyMonths: state.cashflowMonths,
+                    yearlyPoints: state.yearlyCashflow,
+                    yearlyYears: state.yearlyCashflowYears,
+                    strings: strings,
+                    useBuddhistEra: settings.useBuddhistEra,
+                    onGranularityChanged: (CashflowGranularity g) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setCashflowGranularity(g);
+                    },
+                    onDailyDaysChanged: (int days) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setDailyCashflowDays(days);
+                    },
+                    onMonthlyMonthsChanged: (int months) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setCashflowMonths(months);
+                    },
+                    onYearlyYearsChanged: (int years) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setYearlyCashflowYears(years);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _CategoryDonutCard(
+                    breakdown: state.categoryBreakdown,
+                    selectedType: state.categoryType,
+                    strings: strings,
+                    onTypeChanged: (String type) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setCategoryType(type);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (state.accountBalancesOverview != null) ...<Widget>[
+                    _AccountBalanceOverviewCard(
+                      overview: state.accountBalancesOverview!,
+                      strings: strings,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _NetWorthTrendCard(
+                    points: state.netWorthTrend,
+                    selectedDays: state.trendDays,
+                    strings: strings,
+                    onDaysChanged: (int days) {
+                      ref
+                          .read(dashboardControllerProvider.notifier)
+                          .setTrendDays(days);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _RecentTransactionsCard(
+                    transactions: state.recentTransactions,
+                    strings: strings,
+                  ),
+                  if (syncState.stage == SyncStage.synced) ...<Widget>[
+                    const SizedBox(height: 14),
+                    _DataSyncStatusBanner(
+                      syncState: syncState,
+                      strings: strings,
+                      onSyncOrRetry: () {
+                        ref
+                            .read(dataSyncControllerProvider.notifier)
+                            .syncAllAndFlushOfflineQueue();
+                      },
+                    ),
+                  ],
+                ],
+              ],
             ),
           ),
-          if (lockState.hasPin)
-            IconButton(
-              onPressed: () {
-                ref.read(appLockControllerProvider.notifier).lockNow();
-              },
-              tooltip: strings.appLockedTitle,
-              icon: const Icon(Icons.lock_outline_rounded),
-            ),
-          const SizedBox(width: 4),
-        ],
+        ),
       ),
-      body: ResponsiveCenter(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await ref
-                .read(dataSyncControllerProvider.notifier)
-                .syncAllAndFlushOfflineQueue();
-          },
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-            children: <Widget>[
-              // Section 13 Data Synchronization Status & Retry Bar
-              _DataSyncStatusBanner(
-                syncState: syncState,
-                strings: strings,
-                onSyncOrRetry: () {
-                  ref
-                      .read(dataSyncControllerProvider.notifier)
-                      .syncAllAndFlushOfflineQueue();
-                },
+    );
+  }
+}
+
+class _HeaderCircleButton extends StatelessWidget {
+  const _HeaderCircleButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return Tooltip(
+      message: tooltip,
+      child: BouncyTap(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE4ECE9),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: const Color(0xFF0F172A).withAlpha(isDark ? 30 : 12),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-              const SizedBox(height: 10),
-              // Month Selector Bar
-              _MonthSelectorBar(
-                selectedMonth: state.selectedMonth,
-                language: strings.language,
-                useBuddhistEra: settings.useBuddhistEra,
-                onPrevious: () => ref
-                    .read(dashboardControllerProvider.notifier)
-                    .stepMonth(-1),
-                onNext: () => ref
-                    .read(dashboardControllerProvider.notifier)
-                    .stepMonth(1),
-              ),
-              const SizedBox(height: 14),
-              if (state.isLoading && state.summary == null) ...<Widget>[
-                const SkeletonBox(height: 190, borderRadius: 24),
-                const SizedBox(height: 16),
-                const SkeletonBox(height: 150, borderRadius: 22),
-                const SizedBox(height: 16),
-                const SkeletonBox(height: 240, borderRadius: 22),
-              ] else if (state.error != null && state.summary == null) ...<Widget>[
-                ErrorStateView(
-                  message: state.error!.localizedMessage(strings),
-                  onRetry: () =>
-                      ref.read(dashboardControllerProvider.notifier).refresh(),
-                ),
-              ] else ...<Widget>[
-                if (state.summary != null) ...<Widget>[
-                  _NetWorthHeroCard(
-                    summary: state.summary!,
-                    strings: strings,
-                  ),
-                  const SizedBox(height: 14),
-                  _QuickActionsRow(strings: strings),
-                  const SizedBox(height: 16),
-                  _MonthlySummaryCard(
-                    summary: state.summary!,
-                    strings: strings,
-                  ),
-                  const SizedBox(height: 16),
-                  _IncomeVsExpenseComparisonCard(
-                    summary: state.summary!,
-                    strings: strings,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                _CashflowChartCard(
-                  granularity: state.cashflowGranularity,
-                  dailyPoints: state.dailyCashflow,
-                  dailyDays: state.dailyCashflowDays,
-                  monthlyPoints: state.cashflow,
-                  monthlyMonths: state.cashflowMonths,
-                  yearlyPoints: state.yearlyCashflow,
-                  yearlyYears: state.yearlyCashflowYears,
-                  strings: strings,
-                  useBuddhistEra: settings.useBuddhistEra,
-                  onGranularityChanged: (CashflowGranularity g) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setCashflowGranularity(g);
-                  },
-                  onDailyDaysChanged: (int days) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setDailyCashflowDays(days);
-                  },
-                  onMonthlyMonthsChanged: (int months) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setCashflowMonths(months);
-                  },
-                  onYearlyYearsChanged: (int years) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setYearlyCashflowYears(years);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _CategoryDonutCard(
-                  breakdown: state.categoryBreakdown,
-                  selectedType: state.categoryType,
-                  strings: strings,
-                  onTypeChanged: (String type) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setCategoryType(type);
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (state.accountBalancesOverview != null) ...<Widget>[
-                  _AccountBalanceOverviewCard(
-                    overview: state.accountBalancesOverview!,
-                    strings: strings,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                _NetWorthTrendCard(
-                  points: state.netWorthTrend,
-                  selectedDays: state.trendDays,
-                  strings: strings,
-                  onDaysChanged: (int days) {
-                    ref
-                        .read(dashboardControllerProvider.notifier)
-                        .setTrendDays(days);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _RecentTransactionsCard(
-                  transactions: state.recentTransactions,
-                  strings: strings,
-                ),
-              ],
             ],
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1E293B),
           ),
         ),
       ),
@@ -239,6 +332,7 @@ class _MonthSelectorBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     final String label = AppDateUtils.formatMonthYear(
       selectedMonth,
       language: language,
@@ -246,23 +340,96 @@ class _MonthSelectorBar extends StatelessWidget {
     );
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        IconButton.filledTonal(
-          onPressed: onPrevious,
-          icon: const Icon(Icons.chevron_left_rounded),
+        _MonthArrowCircleButton(
+          icon: Icons.chevron_left_rounded,
+          onTap: onPrevious,
         ),
-        Text(
-          label,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
+        const SizedBox(width: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE4ECE9),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: const Color(0xFF0F172A).withAlpha(isDark ? 26 : 10),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                Icons.calendar_month_outlined,
+                size: 16,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF1E293B),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
-        IconButton.filledTonal(
-          onPressed: onNext,
-          icon: const Icon(Icons.chevron_right_rounded),
+        const SizedBox(width: 24),
+        _MonthArrowCircleButton(
+          icon: Icons.chevron_right_rounded,
+          onTap: onNext,
         ),
       ],
+    );
+  }
+}
+
+class _MonthArrowCircleButton extends StatelessWidget {
+  const _MonthArrowCircleButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return BouncyTap(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF452E10)
+              : const Color(0xFFFEF0B3),
+          shape: BoxShape.circle,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withAlpha(isDark ? 20 : 8),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF1E293B),
+        ),
+      ),
     );
   }
 }
@@ -270,31 +437,33 @@ class _MonthSelectorBar extends StatelessWidget {
 class _NetWorthHeroCard extends StatelessWidget {
   const _NetWorthHeroCard({
     required this.summary,
+    required this.trendPoints,
     required this.strings,
   });
 
   final DashboardSummary summary;
+  final List<NetWorthPoint> trendPoints;
   final AppStrings strings;
 
   String _financialStatusLabel() {
     switch (summary.financialStatus) {
       case 'excellent':
-        return strings.tr('สถานะการเงิน: ดีเยี่ยม', 'Financial Status: Excellent');
+        return strings.tr('สถานะการเงิน : ดีเยี่ยม', 'Financial Status : Excellent');
       case 'good':
-        return strings.tr('สถานะการเงิน: มั่นคง', 'Financial Status: Healthy');
+        return strings.tr('สถานะการเงิน : มั่นคง', 'Financial Status : Healthy');
       case 'warning':
-        return strings.tr('สถานะการเงิน: ควรระวัง', 'Financial Status: Needs Attention');
+        return strings.tr('สถานะการเงิน : ควรระวัง', 'Financial Status : Needs Attention');
       default:
-        return strings.tr('สถานะการเงิน: ปานกลาง', 'Financial Status: Fair');
+        return strings.tr('สถานะการเงิน : ปานกลาง', 'Financial Status : Fair');
     }
   }
 
-  Color _financialStatusColor() {
+  Color _financialStatusBorderColor() {
     switch (summary.financialStatus) {
       case 'excellent':
-        return const Color(0xFF6EE7B7);
+        return const Color(0xFF4ADE80);
       case 'good':
-        return const Color(0xFFA7F3D0);
+        return const Color(0xFF6EE7B7);
       case 'warning':
         return const Color(0xFFFDA4AF);
       default:
@@ -302,14 +471,27 @@ class _NetWorthHeroCard extends StatelessWidget {
     }
   }
 
+  Color _financialStatusFillColor() {
+    switch (summary.financialStatus) {
+      case 'excellent':
+      case 'good':
+        return const Color(0xFF0E7C5B);
+      case 'warning':
+        return const Color(0xFF9F1239);
+      default:
+        return const Color(0xFF92400E);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color statusColor = _financialStatusColor();
+    final Color statusBorder = _financialStatusBorderColor();
+    final Color statusFill = _financialStatusFillColor();
 
     return PremiumCard(
       borderRadius: 24,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.zero,
       gradient: const LinearGradient(
         colors: <Color>[
           AppColors.heroStart,
@@ -319,192 +501,245 @@ class _NetWorthHeroCard extends StatelessWidget {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                strings.netWorthTitle,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: Colors.white.withAlpha(210),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(30),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${summary.accountCount} ${strings.navAccounts}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          AmountText(
-            satang: summary.netWorth,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+          // Glowing green sparkline curve positioned on the upper-right backdrop
+          Positioned(
+            top: 48,
+            right: 0,
+            width: 215,
+            height: 112,
+            child: IgnorePointer(
+              child: HeroGrowthSparkline(points: trendPoints),
             ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: statusColor.withAlpha(34),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: statusColor.withAlpha(110)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(Icons.shield_outlined, size: 14, color: statusColor),
-                const SizedBox(width: 6),
-                Text(
-                  _financialStatusLabel(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: statusColor,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const HeroNetWorthHeaderIcon(size: 18),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              strings.netWorthTitle,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: Colors.white.withAlpha(235),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    BouncyTap(
+                      onTap: () => context.go('/accounts'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(24),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withAlpha(34),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                              '${summary.accountCount} ${strings.navAccounts}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                AmountText(
+                  satang: summary.netWorth,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontSize: 34,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                    height: 1.18,
                   ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusFill.withAlpha(220),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: statusBorder.withAlpha(130),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(
+                        Icons.verified_user_outlined,
+                        size: 14,
+                        color: Colors.white.withAlpha(240),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _financialStatusLabel(),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _HeroSubMetricTile(
+                        icon: const GoldCoinsIcon(size: 28),
+                        label: strings.tr('รายรับรวมทั้งหมด', 'Total Income'),
+                        satang: summary.totalIncome,
+                        valueColor: const Color(0xFF4ADE80),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _HeroSubMetricTile(
+                        icon: const CoralWalletIcon(size: 28),
+                        label: strings.tr('รายจ่ายรวมทั้งหมด', 'Total Expense'),
+                        satang: summary.totalExpense,
+                        valueColor: const Color(0xFFFB7185),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _HeroSubMetricTile(
+                        icon: const Icon(
+                          Icons.trending_up_rounded,
+                          size: 26,
+                          color: Color(0xFF2DD4BF),
+                        ),
+                        label: strings.totalAssets,
+                        satang: summary.totalAssets,
+                        valueColor: const Color(0xFF34D399),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _HeroSubMetricTile(
+                        icon: const GoldenPiggyIcon(size: 28),
+                        label: strings.totalLiabilities,
+                        satang: summary.totalLiabilities,
+                        valueColor: const Color(0xFFFBBF24),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(24),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        strings.tr('รายรับรวมทั้งหมด', 'Total Income'),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withAlpha(190),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      AmountText(
-                        satang: summary.totalIncome,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF6EE7B7),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(24),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        strings.tr('รายจ่ายรวมทั้งหมด', 'Total Expense'),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withAlpha(190),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      AmountText(
-                        satang: summary.totalExpense,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFFFDA4AF),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroSubMetricTile extends StatelessWidget {
+  const _HeroSubMetricTile({
+    required this.icon,
+    required this.label,
+    required this.satang,
+    required this.valueColor,
+  });
+
+  final Widget icon;
+  final String label;
+  final int satang;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(24)),
+      ),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 30,
+            height: 30,
+            child: Center(child: icon),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(24),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        strings.totalAssets,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withAlpha(190),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      AmountText(
-                        satang: summary.totalAssets,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF6EE7B7),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withAlpha(205),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(24),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        strings.totalLiabilities,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withAlpha(190),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      AmountText(
-                        satang: summary.totalLiabilities,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFFFDA4AF),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: AmountText(
+                    satang: satang,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: valueColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -519,40 +754,53 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: <Widget>[
         Expanded(
           child: _QuickActionChip(
-            icon: Icons.south_west_rounded,
+            icon: Icons.north_east_rounded,
             label: strings.tr('รายรับ', 'Income'),
-            color: AppColors.income,
+            iconColor: const Color(0xFF10B981),
+            circleColor: isDark
+                ? const Color(0xFF10B981).withAlpha(36)
+                : const Color(0xFFDDFCEB),
             onTap: () => context.push('/income'),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: _QuickActionChip(
             icon: Icons.north_east_rounded,
             label: strings.tr('รายจ่าย', 'Expense'),
-            color: AppColors.expense,
+            iconColor: const Color(0xFFF43F5E),
+            circleColor: isDark
+                ? const Color(0xFFF43F5E).withAlpha(36)
+                : const Color(0xFFFFE4E8),
             onTap: () => context.push('/expense'),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: _QuickActionChip(
-            icon: Icons.insights_rounded,
+            icon: Icons.show_chart_rounded,
             label: strings.tr('วิเคราะห์', 'Analytics'),
-            color: AppColors.primaryEmerald,
+            iconColor: const Color(0xFF0D9488),
+            circleColor: isDark
+                ? const Color(0xFF14B8A6).withAlpha(36)
+                : const Color(0xFFD5F9F7),
             onTap: () => context.push('/analytics'),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: _QuickActionChip(
-            icon: Icons.backup_outlined,
+            icon: Icons.cloud_upload_outlined,
             label: strings.tr('สำรอง', 'Backup'),
-            color: AppColors.transfer,
+            iconColor: const Color(0xFF2563EB),
+            circleColor: isDark
+                ? const Color(0xFF3B82F6).withAlpha(36)
+                : const Color(0xFFDCEAFE),
             onTap: () => context.push('/backup'),
           ),
         ),
@@ -565,40 +813,43 @@ class _QuickActionChip extends StatelessWidget {
   const _QuickActionChip({
     required this.icon,
     required this.label,
-    required this.color,
+    required this.iconColor,
+    required this.circleColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final Color color;
+  final Color iconColor;
+  final Color circleColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return PremiumCard(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      borderRadius: 16,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+      borderRadius: 18,
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Container(
-            width: 34,
-            height: 34,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color.withAlpha(22),
-              borderRadius: BorderRadius.circular(10),
+              color: circleColor,
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 18, color: color),
+            child: Icon(icon, size: 21, color: iconColor),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontSize: 12.5,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -620,44 +871,79 @@ class _MonthlySummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     final double? savingsRate = summary.savingsRate;
     final String savingsText = savingsRate != null
         ? '${(savingsRate * 100).toStringAsFixed(1)}%'
         : '—';
 
     return PremiumCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text(
-                strings.monthlyOverview,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const EmeraldPieIcon(size: 22),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        strings.monthlyOverview,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 11,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryEmerald.withAlpha(24),
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark
+                      ? AppColors.income.withAlpha(32)
+                      : const Color(0xFFD1FAE5),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  '${strings.savingsRate}: $savingsText',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.primaryEmerald,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      '${strings.savingsRate} : $savingsText',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 12,
+                        color: isDark
+                            ? const Color(0xFF6EE7B7)
+                            : const Color(0xFF065F46),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(
+                      Icons.north_east_rounded,
+                      size: 13,
+                      color: isDark
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF059669),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: <Widget>[
               Expanded(
@@ -665,7 +951,16 @@ class _MonthlySummaryCard extends StatelessWidget {
                   label: strings.income,
                   satang: summary.income,
                   prevSatang: summary.previousMonth.income,
-                  color: AppColors.income,
+                  color: const Color(0xFF059669),
+                  gradientColors: isDark
+                      ? <Color>[
+                          AppColors.income.withAlpha(32),
+                          AppColors.income.withAlpha(14),
+                        ]
+                      : const <Color>[Color(0xFFE5FBF1), Color(0xFFF2FCF7)],
+                  borderColor: isDark
+                      ? AppColors.income.withAlpha(65)
+                      : const Color(0xFFA7F3D0).withAlpha(110),
                   icon: Icons.north_east_rounded,
                   strings: strings,
                 ),
@@ -676,34 +971,18 @@ class _MonthlySummaryCard extends StatelessWidget {
                   label: strings.expense,
                   satang: summary.expense,
                   prevSatang: summary.previousMonth.expense,
-                  color: AppColors.expense,
-                  icon: Icons.south_west_rounded,
+                  color: const Color(0xFFE11D48),
+                  gradientColors: isDark
+                      ? <Color>[
+                          AppColors.expense.withAlpha(32),
+                          AppColors.expense.withAlpha(14),
+                        ]
+                      : const <Color>[Color(0xFFFFECEF), Color(0xFFFFF5F6)],
+                  borderColor: isDark
+                      ? AppColors.expense.withAlpha(65)
+                      : const Color(0xFFFECDD3).withAlpha(110),
+                  icon: Icons.arrow_downward_rounded,
                   strings: strings,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                strings.netCashflow,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              AmountText(
-                satang: summary.net,
-                showPlusSign: true,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: summary.net >= 0
-                      ? AppColors.income
-                      : AppColors.expense,
                 ),
               ),
             ],
@@ -720,6 +999,8 @@ class _MetricColumn extends StatelessWidget {
     required this.satang,
     required this.prevSatang,
     required this.color,
+    required this.gradientColors,
+    required this.borderColor,
     required this.icon,
     required this.strings,
   });
@@ -728,61 +1009,95 @@ class _MetricColumn extends StatelessWidget {
   final int satang;
   final int prevSatang;
   final Color color;
+  final List<Color> gradientColors;
+  final Color borderColor;
   final IconData icon;
   final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: color.withAlpha(18),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
+          Positioned(
+            bottom: 0,
+            right: 6,
+            child: IgnorePointer(
+              child: MiniBarWatermark(
+                color: color.withAlpha(isDark ? 32 : 24),
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          AmountText(
-            satang: satang,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: <Widget>[
-              Text(
-                '${strings.vsPreviousMonth}: ',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(icon, size: 16, color: color),
+                    const SizedBox(width: 5),
+                    Text(
+                      label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : const Color(0xFF0F172A),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Flexible(
-                child: AmountText(
-                  satang: prevSatang,
-                  compact: true,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: AmountText(
+                    satang: satang,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      '${strings.vsPreviousMonth} : ',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 11.5,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Flexible(
+                      child: AmountText(
+                        satang: prevSatang,
+                        compact: true,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 11.5,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1588,14 +1903,55 @@ class _RecentTransactionsCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     strings.recentTransactionsTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
+                TextButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet<bool>(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      builder: (_) => const TransactionFormSheet(),
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text(strings.addTransaction),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
                 TextButton(
                   onPressed: () => context.go('/transactions'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   child: Text(strings.viewAll),
                 ),
               ],

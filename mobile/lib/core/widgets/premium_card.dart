@@ -56,6 +56,7 @@ class PremiumCard extends StatelessWidget {
 
     return Container(
       margin: margin,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: gradient == null ? effectiveBg : null,
         gradient: gradient,
@@ -66,13 +67,21 @@ class PremiumCard extends StatelessWidget {
               : Colors.white.withAlpha(24),
           width: 1,
         ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 18 : 6),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: gradient != null
+            ? <BoxShadow>[
+                BoxShadow(
+                  color: AppColors.heroStart.withAlpha(isDark ? 90 : 52),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ]
+            : <BoxShadow>[
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withAlpha(isDark ? 24 : 10),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
+                ),
+              ],
       ),
       child: content,
     );

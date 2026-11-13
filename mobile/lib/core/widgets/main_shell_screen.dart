@@ -104,10 +104,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 ),
                 destinations: <NavigationRailDestination>[
                   NavigationRailDestination(
-                    icon: const Icon(Icons.space_dashboard_outlined),
+                    icon: const Icon(Icons.grid_view_outlined),
                     selectedIcon: const Icon(
-                      Icons.space_dashboard_rounded,
-                      color: AppColors.primaryEmerald,
+                      Icons.grid_view_rounded,
+                      color: AppColors.income,
                     ),
                     label: Text(strings.navDashboard),
                   ),
@@ -150,29 +150,31 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         bottom: false,
         child: widget.navigationShell,
       ),
-      floatingActionButton: BouncyTap(
-        onTap: () => _openQuickAddTransaction(context),
-        child: FloatingActionButton.extended(
-          onPressed: null,
-          backgroundColor: AppColors.primaryEmerald,
-          foregroundColor: Colors.white,
-          elevation: 2,
-          icon: const Icon(Icons.add_rounded, size: 24),
-          label: Text(
-            strings.addTransaction,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      ),
+      floatingActionButton: widget.navigationShell.currentIndex == 1
+          ? BouncyTap(
+              onTap: () => _openQuickAddTransaction(context),
+              child: FloatingActionButton.extended(
+                onPressed: null,
+                backgroundColor: AppColors.primaryEmerald,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                icon: const Icon(Icons.add_rounded, size: 24),
+                label: Text(
+                  strings.addTransaction,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: _onDestinationSelected,
         destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: const Icon(Icons.space_dashboard_outlined),
+            icon: const Icon(Icons.grid_view_outlined),
             selectedIcon: const Icon(
-              Icons.space_dashboard_rounded,
-              color: AppColors.primaryEmerald,
+              Icons.grid_view_rounded,
+              color: AppColors.income,
             ),
             label: strings.navDashboard,
           ),

@@ -10,10 +10,10 @@ class AppColors {
   static const Color accentGold = Color(0xFFD97706);
   static const Color accentGoldLight = Color(0xFFF59E0B);
 
-  // Hero Card Subtle Banking Surface (Minimalist, Low-Contrast Gradient)
-  static const Color heroStart = Color(0xFF0B3B36);
-  static const Color heroMiddle = Color(0xFF0D4740);
-  static const Color heroEnd = Color(0xFF0F524B);
+  // Hero Card Deep Emerald Gradient
+  static const Color heroStart = Color(0xFF063B31);
+  static const Color heroMiddle = Color(0xFF084B3F);
+  static const Color heroEnd = Color(0xFF0B5C4C);
 
   // Semantic Financial Colors
   static const Color income = Color(0xFF10B981);
@@ -24,11 +24,11 @@ class AppColors {
   static const Color transferDark = Color(0xFF60A5FA);
   static const Color warning = Color(0xFFF59E0B);
 
-  // Light Mode Surfaces
-  static const Color lightBackground = Color(0xFFF4F6F9);
+  // Light Mode Surfaces (Soft Mint-Alabaster Aesthetic)
+  static const Color lightBackground = Color(0xFFF3F7F6);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceSubtle = Color(0xFFEEF2F6);
-  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightSurfaceSubtle = Color(0xFFEAF2EF);
+  static const Color lightBorder = Color(0xFFE5EEEC);
   static const Color lightTextPrimary = Color(0xFF0F172A);
   static const Color lightTextSecondary = Color(0xFF64748B);
 
