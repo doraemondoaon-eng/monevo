@@ -10,6 +10,7 @@ import '../../../core/sync/data_sync_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
@@ -1701,18 +1702,13 @@ class _AccountBalanceOverviewCard extends StatelessWidget {
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppColors.fromHex(acc.color).withAlpha(28),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            IconMapper.resolve(acc.icon),
-                            size: 16,
-                            color: AppColors.fromHex(acc.color),
-                          ),
+                        AccountBrandAvatar(
+                          institution: acc.institution,
+                          accountName: acc.name,
+                          iconKey: acc.icon,
+                          colorHex: acc.color,
+                          size: 32,
+                          borderRadius: 10,
                         ),
                         const SizedBox(width: 10),
                         Expanded(

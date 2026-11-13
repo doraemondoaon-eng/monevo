@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
-import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
@@ -303,18 +303,13 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: accColor.withAlpha(32),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            IconMapper.resolve(account.icon),
-                            color: accColor,
-                            size: 26,
-                          ),
+                        AccountBrandAvatar(
+                          institution: account.institution,
+                          accountName: account.name,
+                          iconKey: account.icon,
+                          colorHex: account.color,
+                          size: 52,
+                          borderRadius: 16,
                         ),
                         const SizedBox(width: 14),
                         Expanded(

@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
+import '../../../core/widgets/thai_institution_catalog.dart';
 import '../../../l10n/app_strings.dart';
 import '../../accounts/domain/account_model.dart';
 import '../../accounts/presentation/accounts_controller.dart';
@@ -170,13 +172,35 @@ class TransactionTile extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitleParts.join(' · '),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: <Widget>[
+                      if (fromAccount != null &&
+                          ThaiInstitutionCatalog.match(
+                                fromAccount.institution,
+                                accountName: fromAccount.name,
+                              ) !=
+                              null) ...<Widget>[
+                        AccountBrandAvatar(
+                          institution: fromAccount.institution,
+                          accountName: fromAccount.name,
+                          iconKey: fromAccount.icon,
+                          colorHex: fromAccount.color,
+                          size: 16,
+                          borderRadius: 4,
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      Expanded(
+                        child: Text(
+                          subtitleParts.join(' · '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                   if (transaction.note != null &&
                       transaction.note!.trim().isNotEmpty) ...<Widget>[

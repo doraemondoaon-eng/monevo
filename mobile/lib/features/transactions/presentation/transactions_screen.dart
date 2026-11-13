@@ -8,6 +8,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
@@ -273,11 +274,38 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         for (final AccountModel acc in accountsState.items)
           PopupMenuItem<String>(
             value: acc.id,
-            child: Text(acc.name),
+            child: Row(
+              children: <Widget>[
+                AccountBrandAvatar(
+                  institution: acc.institution,
+                  accountName: acc.name,
+                  iconKey: acc.icon,
+                  colorHex: acc.color,
+                  size: 22,
+                  borderRadius: 6,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    acc.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
       ],
       child: Chip(
-        avatar: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+        avatar: selectedAcc != null
+            ? AccountBrandAvatar(
+                institution: selectedAcc.institution,
+                accountName: selectedAcc.name,
+                iconKey: selectedAcc.icon,
+                colorHex: selectedAcc.color,
+                size: 20,
+                borderRadius: 6,
+              )
+            : const Icon(Icons.account_balance_wallet_outlined, size: 16),
         label: Text(selectedAcc?.name ?? strings.account),
       ),
     );

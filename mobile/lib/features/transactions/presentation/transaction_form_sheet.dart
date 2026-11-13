@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
 import '../../../l10n/app_strings.dart';
@@ -1146,10 +1147,22 @@ class _AccountSelectorRow extends StatelessWidget {
               final bool selected = acc.id == selectedId;
               final Color accColor = AppColors.fromHex(acc.color);
               return ChoiceChip(
-                avatar: Icon(
-                  IconMapper.resolve(acc.icon),
-                  size: 16,
-                  color: selected ? Colors.white : accColor,
+                avatar: Container(
+                  padding: selected ? const EdgeInsets.all(1) : EdgeInsets.zero,
+                  decoration: selected
+                      ? BoxDecoration(
+                          color: Colors.white.withAlpha(220),
+                          borderRadius: BorderRadius.circular(7),
+                        )
+                      : null,
+                  child: AccountBrandAvatar(
+                    institution: acc.institution,
+                    accountName: acc.name,
+                    iconKey: acc.icon,
+                    colorHex: acc.color,
+                    size: 20,
+                    borderRadius: 6,
+                  ),
                 ),
                 label: Text(acc.name),
                 selected: selected,

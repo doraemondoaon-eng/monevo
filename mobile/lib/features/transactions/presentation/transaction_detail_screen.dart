@@ -10,6 +10,7 @@ import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/money_utils.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
@@ -372,6 +373,16 @@ class _TransactionDetailScreenState
                         : strings.accountLabel,
                     value: fromAccount?.name ?? '—',
                     icon: Icons.account_balance_wallet_outlined,
+                    leadingWidget: fromAccount != null
+                        ? AccountBrandAvatar(
+                            institution: fromAccount.institution,
+                            accountName: fromAccount.name,
+                            iconKey: fromAccount.icon,
+                            colorHex: fromAccount.color,
+                            size: 22,
+                            borderRadius: 6,
+                          )
+                        : null,
                   ),
                   if (isTransfer) ...<Widget>[
                     const Divider(height: 24),
@@ -379,6 +390,16 @@ class _TransactionDetailScreenState
                       label: strings.toAccountLabel,
                       value: toAccount?.name ?? '—',
                       icon: Icons.east_rounded,
+                      leadingWidget: toAccount != null
+                          ? AccountBrandAvatar(
+                              institution: toAccount.institution,
+                              accountName: toAccount.name,
+                              iconKey: toAccount.icon,
+                              colorHex: toAccount.color,
+                              size: 22,
+                              borderRadius: 6,
+                            )
+                          : null,
                     ),
                   ] else ...<Widget>[
                     const Divider(height: 24),
@@ -553,11 +574,13 @@ class _DetailRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.leadingWidget,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final Widget? leadingWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -565,7 +588,8 @@ class _DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+        leadingWidget ??
+            Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 10),
         Expanded(
           child: Text(

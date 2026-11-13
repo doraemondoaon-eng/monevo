@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/state_views.dart';
@@ -202,6 +203,15 @@ class FinancialAnalyticsScreen extends ConsumerWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
+                              AccountBrandAvatar(
+                                institution: acc.institution,
+                                accountName: acc.name,
+                                iconKey: acc.icon,
+                                colorHex: acc.color,
+                                size: 28,
+                                borderRadius: 8,
+                              ),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   '${acc.name} (${acc.sharePercent.toStringAsFixed(1)}%)',

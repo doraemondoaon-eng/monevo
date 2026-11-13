@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/account_badge.dart';
 import '../../../core/widgets/amount_text.dart';
-import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/skeleton_box.dart';
@@ -366,7 +366,6 @@ class _AccountListTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final AppStrings strings = AppStrings.of(context);
-    final Color color = AppColors.fromHex(account.color);
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -375,18 +374,13 @@ class _AccountListTile extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: <Widget>[
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: color.withAlpha(30),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                IconMapper.resolve(account.icon),
-                color: color,
-                size: 22,
-              ),
+            AccountBrandAvatar(
+              institution: account.institution,
+              accountName: account.name,
+              iconKey: account.icon,
+              colorHex: account.color,
+              size: 46,
+              borderRadius: 14,
             ),
             const SizedBox(width: 14),
             Expanded(
