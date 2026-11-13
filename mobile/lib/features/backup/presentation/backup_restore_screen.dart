@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/widgets/monevo_feedback.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../l10n/app_strings.dart';
@@ -124,6 +125,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             'Backup saved on device (${payload.accounts.length} accounts, ${payload.categories.length} categories, ${payload.transactions.length} transactions) → $savedPath\nNote: Main backup does not include slip/receipt images.',
           ),
         );
+        if (mounted) {
+          MonevoAlert.showSuccess(
+            context,
+            title: strings.tr('สำรองข้อมูลสำเร็จ!', 'Backup created!'),
+            subtitle: strings.tr(
+              '${payload.accounts.length} บัญชี • ${payload.transactions.length} รายการ',
+              '${payload.accounts.length} accounts • ${payload.transactions.length} transactions',
+            ),
+          );
+        }
       }
     } catch (e) {
       _setStatus(
@@ -133,6 +144,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         ),
         isError: true,
       );
+      if (mounted) {
+        MonevoAlert.showError(
+          context,
+          title: strings.tr('สำรองข้อมูลไม่สำเร็จ', 'Backup Failed'),
+          message: e.toString(),
+        );
+      }
+    }
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -257,6 +276,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         strings.tr(
           'กู้คืนข้อมูลสำเร็จ: นำเข้าใหม่ ${summary.accountsRestored} บัญชี (ข้ามซ้ำ ${summary.accountsSkippedDuplicate}), ${summary.categoriesRestored} หมวดหมู่ (ข้ามซ้ำ ${summary.categoriesSkippedDuplicate}), ${summary.transactionsRestored} ธุรกรรม (ข้ามซ้ำ ${summary.transactionsSkippedDuplicate})',
           'Restore completed: imported ${summary.accountsRestored} accounts (${summary.accountsSkippedDuplicate} duplicates skipped), ${summary.categoriesRestored} categories (${summary.categoriesSkippedDuplicate} duplicates skipped), ${summary.transactionsRestored} transactions (${summary.transactionsSkippedDuplicate} duplicates skipped).',
+        ),
+      );
+      MonevoAlert.showSuccess(
+        context,
+        title: strings.tr('กู้คืนข้อมูลสำเร็จ!', 'Restore completed!'),
+        subtitle: strings.tr(
+          'นำเข้า ${summary.accountsRestored} บัญชี • ${summary.transactionsRestored} ธุรกรรม',
+          'Restored ${summary.accountsRestored} accounts • ${summary.transactionsRestored} transactions',
         ),
       );
     } on BackupInvalidPasswordException {
