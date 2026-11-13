@@ -485,7 +485,7 @@
         <div class="device-bezel" id="deviceBezel">
           <div class="device-notch"></div>
           <div class="device-screen" id="deviceScreen" style="width: 360px; height: 800px;">
-            <iframe id="appFrame" src="./app/" title="MONEVO Live UX/UI Simulator"></iframe>
+            <iframe id="appFrame" src="about:blank" title="MONEVO Live UX/UI Simulator"></iframe>
             <div class="local-boot-overlay" id="localBootOverlay">
               <div style="font-size: 32px;" id="bootEmoji">⚡</div>
               <div style="font-weight: 800; font-size: 15px;" id="bootTitle">กำลังเตรียมตัวจำลอง Live Local...</div>
@@ -740,20 +740,26 @@
         const bootEmoji = document.getElementById('bootEmoji');
 
         if (!st.flutterInstalled) {
+          delete appFrame.dataset.localLoaded;
           bootOverlay.classList.add('visible');
           bootEmoji.textContent = '📦';
           bootTitle.textContent = 'ยังไม่ได้ติดตั้ง Flutter SDK ในเครื่องนี้';
           bootDesc.innerHTML = 'ติดตั้ง Flutter SDK ที่ <code>C:\\flutter</code> เพื่อให้ตัวจำลอง Hot Reload ใน 1 วินาทีทำงานได้ทันที (ดูวิธีที่แชทผู้ช่วยได้เลยครับ)';
         } else if (st.flutterState === 'ready') {
           bootOverlay.classList.remove('visible');
+          const nextCounter = Number(st.reloadCounter || 0);
           if (!appFrame.dataset.localLoaded) {
             appFrame.dataset.localLoaded = '1';
+            lastLocalReloadCounter = nextCounter;
             appFrame.src = localFlutterUrl;
-          } else if (st.reloadCounter > lastLocalReloadCounter) {
-            lastLocalReloadCounter = st.reloadCounter;
-            appFrame.src = localFlutterUrl + '?r=' + st.reloadCounter;
+          } else if (nextCounter > lastLocalReloadCounter) {
+            lastLocalReloadCounter = nextCounter;
+            appFrame.src = localFlutterUrl + '?r=' + nextCounter;
           }
         } else {
+          if (st.flutterState === 'preparing' || st.flutterState === 'starting' || st.flutterState === 'error') {
+            delete appFrame.dataset.localLoaded;
+          }
           bootOverlay.classList.add('visible');
           bootEmoji.textContent = '⚙️';
           bootTitle.textContent = st.flutterState === 'reloading'
@@ -982,6 +988,8 @@
     checkApiHealth();
     if (IS_LOCAL_HOST) {
       initLocalMode();
+    } else {
+      appFrame.src = './app/';
     }
   </script>
 </body>

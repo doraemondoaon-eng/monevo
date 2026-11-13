@@ -13,10 +13,14 @@ const FLUTTER_PORT = Number(process.env.FLUTTER_WEB_PORT || 4322);
 
 let flutterProc = null;
 let flutterState = 'checking'; // checking | missing_sdk | preparing | starting | ready | reloading | error
+let flutterBooted = false;
+let pendingPostBootReload = false;
+let markingReady = false;
 let flutterPath = null;
 let lastReloadAt = null;
 let reloadCounter = 0;
 let reloadTimer = null;
+let finishReloadTimer = null;
 const flutterLogs = [];
 
 function pushLog(line) {
@@ -71,6 +75,49 @@ function runFlutterCommand(bin, args, cwd = MOBILE_DIR) {
     });
     child.on('close', (code) => resolve({ ok: code === 0, code, out }));
   });
+}
+
+function probeFlutterReady(timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${FLUTTER_PORT}/`, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on('error', () => resolve(false));
+  });
+}
+
+async function markFlutterReady({ bumpCounter = false } = {}) {
+  if (markingReady) {
+    return;
+  }
+  markingReady = true;
+  try {
+    for (let i = 0; i < 8; i += 1) {
+      const ok = await probeFlutterReady();
+      if (ok) {
+        flutterState = 'ready';
+        lastReloadAt = new Date().toISOString();
+        if (bumpCounter) reloadCounter += 1;
+        if (pendingPostBootReload) {
+          pendingPostBootReload = false;
+          setTimeout(() => triggerHotRestart('pending-change'), 350);
+        }
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    if (flutterBooted) {
+      flutterState = 'ready';
+      if (bumpCounter) reloadCounter += 1;
+    }
+  } finally {
+    markingReady = false;
+  }
 }
 
 async function startFlutterWeb() {
@@ -130,16 +177,22 @@ async function startFlutterWeb() {
       pushLog(line);
       if (
         line.includes('is being served at') ||
-        line.includes('Flutter run key commands') ||
-        line.includes('Performing hot restart') ||
-        line.includes('Restarted application') ||
-        line.includes('Reloaded')
+        line.includes('Flutter run key commands')
       ) {
-        flutterState = 'ready';
-        if (line.includes('Restarted application') || line.includes('Reloaded')) {
-          lastReloadAt = new Date().toISOString();
-          reloadCounter += 1;
+        const firstBoot = !flutterBooted;
+        flutterBooted = true;
+        if (firstBoot) {
+          markFlutterReady({ bumpCounter: true });
         }
+      } else if (
+        flutterBooted &&
+        (line.includes('Restarted application') || line.includes('Reloaded'))
+      ) {
+        if (finishReloadTimer) {
+          clearTimeout(finishReloadTimer);
+          finishReloadTimer = null;
+        }
+        markFlutterReady({ bumpCounter: true });
       }
     }
   };
@@ -149,6 +202,8 @@ async function startFlutterWeb() {
   flutterProc.on('close', (code) => {
     pushLog(`Flutter dev process exited (code ${code})`);
     flutterProc = null;
+    flutterBooted = false;
+    pendingPostBootReload = false;
     if (flutterState !== 'missing_sdk') flutterState = 'error';
   });
 
@@ -157,16 +212,21 @@ async function startFlutterWeb() {
 
 function triggerHotRestart(reason = 'manual') {
   if (!flutterProc || !flutterProc.stdin.writable) return false;
+  if (!flutterBooted) {
+    pendingPostBootReload = true;
+    pushLog(`Deferred refresh (${reason}) — initial Flutter compile still running...`);
+    return false;
+  }
   flutterState = 'reloading';
   pushLog(`Triggering instant Hot Restart (${reason})...`);
   flutterProc.stdin.write('R\n');
-  setTimeout(() => {
-    if (flutterState === 'reloading') {
-      flutterState = 'ready';
-      lastReloadAt = new Date().toISOString();
-      reloadCounter += 1;
+  if (finishReloadTimer) clearTimeout(finishReloadTimer);
+  finishReloadTimer = setTimeout(() => {
+    finishReloadTimer = null;
+    if (flutterState === 'reloading' && flutterBooted) {
+      markFlutterReady({ bumpCounter: true });
     }
-  }, 2500);
+  }, 4000);
   return true;
 }
 
@@ -307,6 +367,21 @@ const server = http.createServer(async (req, res) => {
     const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(html);
+    return;
+  }
+
+  if (req.method === 'GET' && (url.pathname === '/app' || url.pathname.startsWith('/app/'))) {
+    if (flutterBooted && flutterState === 'ready') {
+      const targetPath = url.pathname.replace(/^\/app/, '') || '/';
+      res.writeHead(302, {
+        Location: `http://127.0.0.1:${FLUTTER_PORT}${targetPath}${url.search}`,
+        'Cache-Control': 'no-store',
+      });
+      res.end();
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0b1220;color:#e2e8f0;font-family:system-ui,sans-serif;text-align:center;}</style></head><body><div><div style="font-size:28px;margin-bottom:8px;">⚙️</div><div style="font-weight:700;">กำลังเตรียมเครื่องจำลอง Flutter Live...</div><div style="font-size:12px;color:#94a3b8;margin-top:6px;">สถานะ: ${flutterState}</div></div></body></html>`);
     return;
   }
 
