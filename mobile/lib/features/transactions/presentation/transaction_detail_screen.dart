@@ -9,6 +9,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/storage/local_image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/money_utils.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/icon_mapper.dart';
 import '../../../core/widgets/monevo_feedback.dart';
@@ -201,14 +202,18 @@ class _TransactionDetailScreenState
 
       final BuildContext? targetContext = rootNavigatorKey.currentContext;
       if (targetContext != null && targetContext.mounted) {
-        MonevoAlert.showToast(
+        MonevoAlert.showSuccess(
           targetContext,
-          message: strings.tr(
-            'ลบรายการธุรกรรมเรียบร้อยแล้ว',
-            'Transaction deleted successfully',
+          title: strings.tr('ลบรายการสำเร็จ!', 'Transaction Deleted!'),
+          subtitle: strings.tr(
+            'ลบรายการและปรับยอดเงินในบัญชีเรียบร้อยแล้ว',
+            'Transaction deleted and account balance updated',
           ),
-          type: MonevoAlertType.info,
-          icon: Icons.delete_outline_rounded,
+          amountFormatted: MoneyUtils.formatSatang(tx.amount),
+          amountColor: AppColors.expense,
+          customIcon: Icons.delete_sweep_rounded,
+          customColor: AppColors.expense,
+          confirmLabel: strings.confirm,
         );
       }
     } on ApiException catch (e) {

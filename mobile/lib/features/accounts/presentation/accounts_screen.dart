@@ -345,6 +345,9 @@ class _AccountListTile extends ConsumerWidget {
             'ลบบัญชี "${account.name}" เรียบร้อยแล้ว',
             'Account "${account.name}" removed.',
           ),
+          customIcon: Icons.delete_sweep_rounded,
+          customColor: AppColors.expense,
+          confirmLabel: strings.confirm,
         );
       }
     } catch (e) {

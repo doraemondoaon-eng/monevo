@@ -84,11 +84,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
 
       final BuildContext? targetContext = rootNavigatorKey.currentContext;
       if (targetContext != null && targetContext.mounted) {
-        MonevoAlert.showToast(
+        MonevoAlert.showSuccess(
           targetContext,
-          message: strings.tr('ลบหมวดหมู่เรียบร้อยแล้ว', 'Category deleted successfully'),
-          type: MonevoAlertType.info,
-          icon: Icons.delete_outline_rounded,
+          title: strings.tr('ลบหมวดหมู่สำเร็จ!', 'Category Deleted!'),
+          subtitle: strings.tr(
+            'หมวดหมู่ถูกลบออกจากระบบเรียบร้อยแล้ว',
+            'Category removed successfully',
+          ),
+          categoryName: category.name,
+          customIcon: Icons.delete_sweep_rounded,
+          customColor: AppColors.expense,
+          confirmLabel: strings.confirm,
         );
       }
     } on ApiException catch (e) {

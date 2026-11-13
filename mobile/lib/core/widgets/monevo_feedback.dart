@@ -131,6 +131,8 @@ class MonevoAlert {
     Color? amountColor,
     String? categoryName,
     String? accountName,
+    IconData? customIcon,
+    Color? customColor,
     String confirmLabel = 'ตกลง',
     Duration autoDismissDuration = const Duration(milliseconds: 2300),
     VoidCallback? onDismissed,
@@ -148,9 +150,11 @@ class MonevoAlert {
           title: title,
           subtitle: subtitle,
           amountFormatted: amountFormatted,
-          amountColor: amountColor ?? AppColors.primaryEmerald,
+          amountColor: amountColor ?? (customColor ?? AppColors.primaryEmerald),
           categoryName: categoryName,
           accountName: accountName,
+          customIcon: customIcon,
+          customColor: customColor,
           confirmLabel: confirmLabel,
           type: MonevoAlertType.success,
           autoDismissDuration: autoDismissDuration,
@@ -326,6 +330,8 @@ class _SweetAlertModal extends StatefulWidget {
     this.amountColor,
     this.categoryName,
     this.accountName,
+    this.customIcon,
+    this.customColor,
     required this.confirmLabel,
     required this.type,
     this.autoDismissDuration,
@@ -337,6 +343,8 @@ class _SweetAlertModal extends StatefulWidget {
   final Color? amountColor;
   final String? categoryName;
   final String? accountName;
+  final IconData? customIcon;
+  final Color? customColor;
   final String confirmLabel;
   final MonevoAlertType type;
   final Duration? autoDismissDuration;
@@ -375,6 +383,9 @@ class _SweetAlertModalState extends State<_SweetAlertModal>
   }
 
   Color _resolveColor(bool isDark) {
+    if (widget.customColor != null) {
+      return widget.customColor!;
+    }
     switch (widget.type) {
       case MonevoAlertType.success:
         return AppColors.primaryEmerald;
@@ -388,6 +399,9 @@ class _SweetAlertModalState extends State<_SweetAlertModal>
   }
 
   IconData _resolveIcon() {
+    if (widget.customIcon != null) {
+      return widget.customIcon!;
+    }
     switch (widget.type) {
       case MonevoAlertType.success:
         return Icons.check_rounded;

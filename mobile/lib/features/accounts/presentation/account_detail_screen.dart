@@ -183,6 +183,9 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
             'ลบบัญชี "${account.name}" และรายการที่เกี่ยวข้องเรียบร้อยแล้ว',
             'Account "${account.name}" and associated records have been removed.',
           ),
+          customIcon: Icons.delete_sweep_rounded,
+          customColor: AppColors.expense,
+          confirmLabel: strings.confirm,
         );
       }
     } on ApiException catch (e) {
