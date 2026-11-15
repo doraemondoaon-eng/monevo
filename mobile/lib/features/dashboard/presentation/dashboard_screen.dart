@@ -132,19 +132,6 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // Month Selector Bar
-                _MonthSelectorBar(
-                  selectedMonth: state.selectedMonth,
-                  language: strings.language,
-                  useBuddhistEra: settings.useBuddhistEra,
-                  onPrevious: () => ref
-                      .read(dashboardControllerProvider.notifier)
-                      .stepMonth(-1),
-                  onNext: () => ref
-                      .read(dashboardControllerProvider.notifier)
-                      .stepMonth(1),
-                ),
-                const SizedBox(height: 14),
                 if (state.isLoading && state.summary == null) ...<Widget>[
                   const SkeletonBox(height: 220, borderRadius: 24),
                   const SizedBox(height: 14),
@@ -366,133 +353,6 @@ class _HeaderCircleButton extends StatelessWidget {
             size: 20,
             color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1E293B),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MonthSelectorBar extends StatelessWidget {
-  const _MonthSelectorBar({
-    required this.selectedMonth,
-    required this.language,
-    required this.useBuddhistEra,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final String selectedMonth;
-  final AppLanguage language;
-  final bool useBuddhistEra;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final String label = AppDateUtils.formatMonthYear(
-      selectedMonth,
-      language: language,
-      useBuddhistEra: useBuddhistEra,
-    );
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        _MonthArrowCircleButton(
-          icon: Icons.chevron_left_rounded,
-          onTap: onPrevious,
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : const Color(0xFFE4ECE9),
-              ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withAlpha(isDark ? 26 : 10),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    Icons.calendar_month_outlined,
-                    size: 16,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : const Color(0xFF1E293B),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        _MonthArrowCircleButton(
-          icon: Icons.chevron_right_rounded,
-          onTap: onNext,
-        ),
-      ],
-    );
-  }
-}
-
-class _MonthArrowCircleButton extends StatelessWidget {
-  const _MonthArrowCircleButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return BouncyTap(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF452E10)
-              : const Color(0xFFFEF0B3),
-          shape: BoxShape.circle,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 20 : 8),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF1E293B),
         ),
       ),
     );
@@ -865,13 +725,25 @@ class _QuickActionsRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _QuickActionChip(
-            icon: Icons.north_east_rounded,
+            icon: Icons.arrow_downward_rounded,
             label: strings.tr('รายจ่าย', 'Expense'),
             iconColor: const Color(0xFFF43F5E),
             circleColor: isDark
                 ? const Color(0xFFF43F5E).withAlpha(36)
                 : const Color(0xFFFFE4E8),
             onTap: () => context.push('/expense'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _QuickActionChip(
+            icon: Icons.swap_horiz_rounded,
+            label: strings.tr('โอน', 'Transfer'),
+            iconColor: const Color(0xFF2563EB),
+            circleColor: isDark
+                ? const Color(0xFF3B82F6).withAlpha(36)
+                : const Color(0xFFDCEAFE),
+            onTap: () => context.push('/transfer'),
           ),
         ),
         const SizedBox(width: 10),
@@ -884,18 +756,6 @@ class _QuickActionsRow extends StatelessWidget {
                 ? const Color(0xFF14B8A6).withAlpha(36)
                 : const Color(0xFFD5F9F7),
             onTap: () => context.push('/analytics'),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _QuickActionChip(
-            icon: Icons.cloud_upload_outlined,
-            label: strings.tr('สำรอง', 'Backup'),
-            iconColor: const Color(0xFF2563EB),
-            circleColor: isDark
-                ? const Color(0xFF3B82F6).withAlpha(36)
-                : const Color(0xFFDCEAFE),
-            onTap: () => context.push('/backup'),
           ),
         ),
       ],

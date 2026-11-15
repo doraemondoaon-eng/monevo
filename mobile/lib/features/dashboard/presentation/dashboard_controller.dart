@@ -29,7 +29,7 @@ DateTime _parseApiDateOrToday(String apiDate) {
 class DashboardState {
   const DashboardState({
     required this.selectedMonth,
-    this.summaryMode = SummaryViewMode.monthly,
+    this.summaryMode = SummaryViewMode.daily,
     this.selectedDay = '',
     this.dailySummaryCache = const <String, DailyCashflowPoint>{},
     this.isDailyLoading = false,

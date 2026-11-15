@@ -61,7 +61,7 @@ class ExpenseScreen extends ConsumerWidget {
         elevation: 2,
         icon: const Icon(Icons.add_rounded),
         label: Text(
-          strings.tr('บันทึกรายจ่าย / แนบสลิป', 'Record Expense'),
+          strings.tr('บันทึกรายจ่าย', 'Record Expense'),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),

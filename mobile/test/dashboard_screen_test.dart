@@ -300,7 +300,31 @@ void main() {
         // Full Thai labels present cleanly without ellipsis overflow exceptions
         expect(find.text('รายรับรวมทั้งหมด'), findsOneWidget);
         expect(find.text('รายจ่ายรวมทั้งหมด'), findsOneWidget);
-        expect(find.text('สรุปประจำเดือน'), findsOneWidget);
+
+        // Top month selector bar removed; daily summary is active by default
+        expect(find.text('พฤศจิกายน 2569'), findsNothing);
+        expect(find.text('สรุปรายวัน'), findsOneWidget);
+
+        // Quick actions order: รายรับ -> รายจ่าย(↓) -> โอน -> วิเคราะห์; no สำรอง
+        expect(find.text('รายรับ'), findsWidgets);
+        expect(find.text('รายจ่าย'), findsWidgets);
+        expect(find.text('โอน'), findsOneWidget);
+        expect(find.text('วิเคราะห์'), findsOneWidget);
+        expect(find.text('สำรอง'), findsNothing);
+
+        final double incomeX = tester.getTopLeft(find.text('รายรับ').first).dx;
+        final double expenseX =
+            tester.getTopLeft(find.text('รายจ่าย').first).dx;
+        final double transferX = tester.getTopLeft(find.text('โอน')).dx;
+        final double analyticsX =
+            tester.getTopLeft(find.text('วิเคราะห์')).dx;
+        expect(incomeX, lessThan(expenseX));
+        expect(expenseX, lessThan(transferX));
+        expect(transferX, lessThan(analyticsX));
+
+        // Expense quick action uses downward arrow icon
+        expect(find.byIcon(Icons.arrow_downward_rounded), findsWidgets);
+
         expect(tester.takeException(), isNull);
       },
     );
@@ -461,20 +485,22 @@ void main() {
 
         await pumpDashboard(tester, state);
 
-        // Monthly view is shown initially with toggle option for daily view
-        expect(find.text('สรุปประจำเดือน'), findsOneWidget);
-        expect(find.text('แบบรายวัน'), findsOneWidget);
-
-        // Switch to daily mode -> shows today's income/expense & comparison vs prev day
-        await tester.tap(find.byKey(const ValueKey<String>('summary_mode_daily')));
-        await tester.pumpAndSettle();
-
+        // Opens directly in daily summary view by default (without user tapping)
         expect(find.text('สรุปรายวัน'), findsOneWidget);
         expect(find.text('เทียบวันก่อน : '), findsNWidgets(2));
         expect(find.text('฿320.00'), findsOneWidget);
         expect(find.text('฿299.00'), findsOneWidget);
         expect(find.text('+฿21.00'), findsOneWidget);
         expect(find.text('อัตราการออม : 6.6%'), findsOneWidget);
+
+        // User can switch to monthly view and back to daily view anytime
+        await tester.tap(find.byKey(const ValueKey<String>('summary_mode_monthly')));
+        await tester.pumpAndSettle();
+        expect(find.text('สรุปประจำเดือน'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey<String>('summary_mode_daily')));
+        await tester.pumpAndSettle();
+        expect(find.text('สรุปรายวัน'), findsOneWidget);
 
         // Step to previous day -> shows yesterday's breakdown and Today shortcut
         await tester.tap(find.byKey(const ValueKey<String>('summary_prev_day')));

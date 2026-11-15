@@ -20,6 +20,7 @@ import '../../features/transactions/presentation/expense_screen.dart';
 import '../../features/transactions/presentation/income_screen.dart';
 import '../../features/transactions/presentation/transaction_detail_screen.dart';
 import '../../features/transactions/presentation/transactions_screen.dart';
+import '../../features/transactions/presentation/transfer_screen.dart';
 import '../security/app_lock_controller.dart';
 import '../widgets/main_shell_screen.dart';
 
@@ -143,6 +144,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/expense',
         builder: (BuildContext context, GoRouterState state) =>
             const ExpenseScreen(),
+      ),
+      GoRoute(
+        path: '/transfer',
+        builder: (BuildContext context, GoRouterState state) =>
+            const TransferScreen(),
       ),
       GoRoute(
         path: '/analytics',
