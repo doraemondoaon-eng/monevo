@@ -725,7 +725,7 @@ class _QuickActionsRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _QuickActionChip(
-            icon: Icons.arrow_downward_rounded,
+            icon: Icons.south_west_rounded,
             label: strings.tr('รายจ่าย', 'Expense'),
             iconColor: const Color(0xFFF43F5E),
             circleColor: isDark
@@ -1163,7 +1163,7 @@ class _MonthlySummaryCard extends StatelessWidget {
                   borderColor: isDark
                       ? AppColors.expense.withAlpha(65)
                       : const Color(0xFFFECDD3).withAlpha(110),
-                  icon: Icons.arrow_downward_rounded,
+                  icon: Icons.south_west_rounded,
                 ),
               ),
             ],

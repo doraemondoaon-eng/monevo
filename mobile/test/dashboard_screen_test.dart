@@ -322,8 +322,9 @@ void main() {
         expect(expenseX, lessThan(transferX));
         expect(transferX, lessThan(analyticsX));
 
-        // Expense quick action uses downward arrow icon
-        expect(find.byIcon(Icons.arrow_downward_rounded), findsWidgets);
+        // Expense quick action and summary card use diagonal down-left arrow (↙)
+        expect(find.byIcon(Icons.south_west_rounded), findsNWidgets(2));
+        expect(find.byIcon(Icons.arrow_downward_rounded), findsNothing);
 
         expect(tester.takeException(), isNull);
       },
