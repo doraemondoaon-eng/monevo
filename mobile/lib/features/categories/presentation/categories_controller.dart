@@ -5,6 +5,8 @@ import '../../auth/presentation/auth_controller.dart';
 import '../data/categories_repository.dart';
 import '../domain/category_model.dart';
 
+enum CategoryRemovalOutcome { deleted, archived }
+
 class CategoriesState {
   const CategoriesState({
     this.items = const <CategoryModel>[],
@@ -154,6 +156,21 @@ class CategoriesController extends StateNotifier<CategoriesState> {
     state = state.copyWith(
       items: state.items.where((CategoryModel c) => c.id != id).toList(),
     );
+  }
+
+  /// Deletes a category immediately, or archives it if existing transactions
+  /// reference it (`409 CATEGORY_IN_USE`) so it leaves active pickers in one step.
+  Future<CategoryRemovalOutcome> removeCategoryImmediate(String id) async {
+    try {
+      await deleteCategory(id);
+      return CategoryRemovalOutcome.deleted;
+    } on ApiException catch (e) {
+      if (e.isCategoryInUse) {
+        await updateCategory(id, isArchived: true);
+        return CategoryRemovalOutcome.archived;
+      }
+      rethrow;
+    }
   }
 }
 

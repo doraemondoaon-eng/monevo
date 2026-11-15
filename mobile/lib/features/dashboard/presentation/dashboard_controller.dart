@@ -10,9 +10,29 @@ import '../domain/dashboard_models.dart';
 
 enum CashflowGranularity { daily, monthly, yearly }
 
+enum SummaryViewMode { monthly, daily }
+
+DateTime _parseApiDateOrToday(String apiDate) {
+  final List<String> parts = apiDate.split('-');
+  if (parts.length == 3) {
+    final int? y = int.tryParse(parts[0]);
+    final int? m = int.tryParse(parts[1]);
+    final int? d = int.tryParse(parts[2]);
+    if (y != null && m != null && d != null) {
+      return DateTime(y, m, d);
+    }
+  }
+  final DateTime now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
 class DashboardState {
   const DashboardState({
     required this.selectedMonth,
+    this.summaryMode = SummaryViewMode.monthly,
+    this.selectedDay = '',
+    this.dailySummaryCache = const <String, DailyCashflowPoint>{},
+    this.isDailyLoading = false,
     this.summary,
     this.cashflow = const <CashflowPoint>[],
     this.cashflowMonths = 6,
@@ -32,6 +52,10 @@ class DashboardState {
   });
 
   final String selectedMonth;
+  final SummaryViewMode summaryMode;
+  final String selectedDay;
+  final Map<String, DailyCashflowPoint> dailySummaryCache;
+  final bool isDailyLoading;
   final DashboardSummary? summary;
   final List<CashflowPoint> cashflow;
   final int cashflowMonths;
@@ -49,8 +73,37 @@ class DashboardState {
   final bool isLoading;
   final ApiException? error;
 
+  String get effectiveSelectedDay =>
+      selectedDay.isEmpty ? AppDateUtils.toApiDate(DateTime.now()) : selectedDay;
+
+  DateTime get effectiveSelectedDate => _parseApiDateOrToday(effectiveSelectedDay);
+
+  DailyCashflowPoint dailyPointFor(String apiDate) {
+    final DailyCashflowPoint? cached = dailySummaryCache[apiDate];
+    if (cached != null) {
+      return cached;
+    }
+    for (final DailyCashflowPoint point in dailyCashflow) {
+      if (point.date == apiDate) {
+        return point;
+      }
+    }
+    return DailyCashflowPoint(date: apiDate, income: 0, expense: 0, net: 0);
+  }
+
+  bool hasDailyPoint(String apiDate) {
+    if (dailySummaryCache.containsKey(apiDate)) {
+      return true;
+    }
+    return dailyCashflow.any((DailyCashflowPoint p) => p.date == apiDate);
+  }
+
   DashboardState copyWith({
     String? selectedMonth,
+    SummaryViewMode? summaryMode,
+    String? selectedDay,
+    Map<String, DailyCashflowPoint>? dailySummaryCache,
+    bool? isDailyLoading,
     DashboardSummary? summary,
     List<CashflowPoint>? cashflow,
     int? cashflowMonths,
@@ -71,6 +124,10 @@ class DashboardState {
   }) {
     return DashboardState(
       selectedMonth: selectedMonth ?? this.selectedMonth,
+      summaryMode: summaryMode ?? this.summaryMode,
+      selectedDay: selectedDay ?? this.selectedDay,
+      dailySummaryCache: dailySummaryCache ?? this.dailySummaryCache,
+      isDailyLoading: isDailyLoading ?? this.isDailyLoading,
       summary: summary ?? this.summary,
       cashflow: cashflow ?? this.cashflow,
       cashflowMonths: cashflowMonths ?? this.cashflowMonths,
@@ -99,6 +156,7 @@ class DashboardController extends StateNotifier<DashboardState> {
     required bool isAuthenticated,
   }) : _dashboardRepo = dashboardRepo,
        _transactionsRepo = transactionsRepo,
+       _isAuthenticated = isAuthenticated,
        super(
          DashboardState(
            selectedMonth: AppDateUtils.toApiMonth(DateTime.now()),
@@ -111,6 +169,7 @@ class DashboardController extends StateNotifier<DashboardState> {
 
   final DashboardRepository _dashboardRepo;
   final TransactionsRepository _transactionsRepo;
+  final bool _isAuthenticated;
 
   Future<void> _hydrateAndRefresh() async {
     final DashboardSummary? cachedSummary =
@@ -152,10 +211,19 @@ class DashboardController extends StateNotifier<DashboardState> {
         return;
       }
 
+      final List<DailyCashflowPoint> dailyPoints =
+          results[2] as List<DailyCashflowPoint>;
+      final Map<String, DailyCashflowPoint> mergedDailyCache =
+          <String, DailyCashflowPoint>{
+            for (final DailyCashflowPoint point in dailyPoints)
+              point.date: point,
+          };
+
       state = state.copyWith(
         summary: results[0] as DashboardSummary,
         cashflow: results[1] as List<CashflowPoint>,
-        dailyCashflow: results[2] as List<DailyCashflowPoint>,
+        dailyCashflow: dailyPoints,
+        dailySummaryCache: mergedDailyCache,
         yearlyCashflow: results[3] as List<YearlyCashflowPoint>,
         accountBalancesOverview: results[4] as AccountBalancesOverview,
         categoryBreakdown: results[5] as CategoryBreakdown,
@@ -164,6 +232,20 @@ class DashboardController extends StateNotifier<DashboardState> {
         isLoading: false,
         clearError: true,
       );
+      if (state.summaryMode == SummaryViewMode.daily) {
+        final DateTime target = state.effectiveSelectedDate;
+        final String targetKey = AppDateUtils.toApiDate(target);
+        final String prevKey = AppDateUtils.toApiDate(
+          target.subtract(const Duration(days: 1)),
+        );
+        final Set<String> refreshedDates = dailyPoints
+            .map((DailyCashflowPoint p) => p.date)
+            .toSet();
+        if (!refreshedDates.contains(targetKey) ||
+            !refreshedDates.contains(prevKey)) {
+          await _fetchDailyWindowTotals(target);
+        }
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
@@ -294,6 +376,146 @@ class DashboardController extends StateNotifier<DashboardState> {
         return;
       }
       state = state.copyWith(error: e);
+    }
+  }
+
+  Future<void> setSummaryMode(SummaryViewMode mode) async {
+    if (mode == state.summaryMode) {
+      return;
+    }
+    final String dayKey = state.effectiveSelectedDay;
+    state = state.copyWith(summaryMode: mode, selectedDay: dayKey);
+    if (mode == SummaryViewMode.daily) {
+      await _ensureDailyWindowLoaded(_parseApiDateOrToday(dayKey));
+    }
+  }
+
+  Future<void> selectSummaryDay(DateTime day) async {
+    final DateTime normalized = DateTime(day.year, day.month, day.day);
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime clamped = normalized.isAfter(today) ? today : normalized;
+    final String dayKey = AppDateUtils.toApiDate(clamped);
+    state = state.copyWith(
+      summaryMode: SummaryViewMode.daily,
+      selectedDay: dayKey,
+    );
+    await _ensureDailyWindowLoaded(clamped);
+  }
+
+  Future<void> stepSummaryDay(int deltaDays) async {
+    final DateTime current = state.effectiveSelectedDate;
+    final DateTime next = DateTime(
+      current.year,
+      current.month,
+      current.day,
+    ).add(Duration(days: deltaDays));
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    if (next.isAfter(today)) {
+      return;
+    }
+    await selectSummaryDay(next);
+  }
+
+  Future<void> _ensureDailyWindowLoaded(DateTime day) async {
+    if (!_isAuthenticated) {
+      return;
+    }
+    final String dayKey = AppDateUtils.toApiDate(day);
+    final String prevKey = AppDateUtils.toApiDate(
+      day.subtract(const Duration(days: 1)),
+    );
+    if (state.hasDailyPoint(dayKey) && state.hasDailyPoint(prevKey)) {
+      return;
+    }
+    await _fetchDailyWindowTotals(day);
+  }
+
+  Future<void> _fetchDailyWindowTotals(DateTime day) async {
+    if (!_isAuthenticated) {
+      return;
+    }
+    final DateTime prevDay = DateTime(
+      day.year,
+      day.month,
+      day.day,
+    ).subtract(const Duration(days: 1));
+    final DateTime from = DateTime(prevDay.year, prevDay.month, prevDay.day);
+    final DateTime to = DateTime(day.year, day.month, day.day, 23, 59, 59, 999);
+    final String dayKey = AppDateUtils.toApiDate(day);
+    final String prevKey = AppDateUtils.toApiDate(prevDay);
+
+    state = state.copyWith(isDailyLoading: true);
+    try {
+      final List<TransactionModel> allItems = <TransactionModel>[];
+      String? cursor;
+      for (int pageIndex = 0; pageIndex < 5; pageIndex++) {
+        final PaginatedTransactions page = await _transactionsRepo
+            .getTransactions(
+              filter: TransactionFilter(from: from, to: to),
+              limit: 100,
+              cursor: cursor,
+            );
+        allItems.addAll(page.items);
+        if (!page.hasMore ||
+            page.nextCursor == null ||
+            page.nextCursor!.isEmpty) {
+          break;
+        }
+        cursor = page.nextCursor;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      int dayIncome = 0;
+      int dayExpense = 0;
+      int prevIncome = 0;
+      int prevExpense = 0;
+
+      for (final TransactionModel tx in allItems) {
+        final String txDay = AppDateUtils.toApiDate(tx.occurredAt.toLocal());
+        if (txDay == dayKey) {
+          if (tx.type == TransactionType.income) {
+            dayIncome += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            dayExpense += tx.amount;
+          }
+        } else if (txDay == prevKey) {
+          if (tx.type == TransactionType.income) {
+            prevIncome += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            prevExpense += tx.amount;
+          }
+        }
+      }
+
+      final Map<String, DailyCashflowPoint> nextCache =
+          Map<String, DailyCashflowPoint>.from(state.dailySummaryCache);
+      nextCache[prevKey] = DailyCashflowPoint(
+        date: prevKey,
+        income: prevIncome,
+        expense: prevExpense,
+        net: prevIncome - prevExpense,
+      );
+      nextCache[dayKey] = DailyCashflowPoint(
+        date: dayKey,
+        income: dayIncome,
+        expense: dayExpense,
+        net: dayIncome - dayExpense,
+      );
+
+      state = state.copyWith(
+        dailySummaryCache: nextCache,
+        isDailyLoading: false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      state = state.copyWith(isDailyLoading: false, error: e);
     }
   }
 }

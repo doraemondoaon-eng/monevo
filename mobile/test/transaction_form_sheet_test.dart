@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monevo/core/network/api_exception.dart';
 import 'package:monevo/core/storage/local_cache_service.dart';
 import 'package:monevo/core/theme/app_theme.dart';
 import 'package:monevo/features/accounts/data/accounts_api.dart';
@@ -13,6 +14,7 @@ import 'package:monevo/features/categories/data/categories_api.dart';
 import 'package:monevo/features/categories/data/categories_repository.dart';
 import 'package:monevo/features/categories/domain/category_model.dart';
 import 'package:monevo/features/categories/presentation/categories_controller.dart';
+import 'package:monevo/features/categories/presentation/categories_screen.dart';
 import 'package:monevo/features/transactions/presentation/transaction_form_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,15 +29,66 @@ class _SeededAccountsController extends AccountsController {
 }
 
 class _SeededCategoriesController extends CategoriesController {
-  _SeededCategoriesController(List<CategoryModel> seeded)
-    : super(
-        CategoriesRepository(
-          api: CategoriesApi(Dio()),
-          cache: LocalCacheService(),
-        ),
-        isAuthenticated: false,
-      ) {
+  _SeededCategoriesController(
+    List<CategoryModel> seeded, {
+    Set<String> inUseIds = const <String>{},
+  }) : _inUseIds = inUseIds,
+       super(
+         CategoriesRepository(
+           api: CategoriesApi(Dio()),
+           cache: LocalCacheService(),
+         ),
+         isAuthenticated: false,
+       ) {
     state = CategoriesState(items: seeded);
+  }
+
+  final Set<String> _inUseIds;
+
+  @override
+  Future<CategoryModel> updateCategory(
+    String id, {
+    String? name,
+    String? icon,
+    String? color,
+    bool? isArchived,
+    int? sortOrder,
+  }) async {
+    final CategoryModel existing = state.items.firstWhere(
+      (CategoryModel c) => c.id == id,
+    );
+    final CategoryModel updated = CategoryModel(
+      id: existing.id,
+      name: name ?? existing.name,
+      type: existing.type,
+      icon: icon ?? existing.icon,
+      color: color ?? existing.color,
+      isArchived: isArchived ?? existing.isArchived,
+      sortOrder: sortOrder ?? existing.sortOrder,
+      createdAt: existing.createdAt,
+      updatedAt: existing.updatedAt,
+    );
+    state = state.copyWith(
+      items: state.items
+          .map((CategoryModel c) => c.id == id ? updated : c)
+          .where((CategoryModel c) => state.includeArchived || !c.isArchived)
+          .toList(),
+    );
+    return updated;
+  }
+
+  @override
+  Future<void> deleteCategory(String id) async {
+    if (_inUseIds.contains(id)) {
+      throw const ApiException(
+        code: 'CATEGORY_IN_USE',
+        message: 'Category is in use',
+        statusCode: 409,
+      );
+    }
+    state = state.copyWith(
+      items: state.items.where((CategoryModel c) => c.id != id).toList(),
+    );
   }
 }
 
@@ -115,7 +168,11 @@ void main() {
     ),
   ];
 
-  Future<void> pumpSheet(WidgetTester tester) async {
+  Future<void> pumpSheet(
+    WidgetTester tester, {
+    List<CategoryModel>? categories,
+    Set<String> inUseCategoryIds = const <String>{},
+  }) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'monevo_language': 'th',
       'monevo_buddhist_era': true,
@@ -131,7 +188,10 @@ void main() {
             (_) => _SeededAccountsController(testAccounts),
           ),
           categoriesControllerProvider.overrideWith(
-            (_) => _SeededCategoriesController(testCategories),
+            (_) => _SeededCategoriesController(
+              categories ?? testCategories,
+              inUseIds: inUseCategoryIds,
+            ),
           ),
         ],
         child: MaterialApp(
@@ -278,6 +338,126 @@ void main() {
         await tester.pumpAndSettle();
         final Text transferAmount = tester.widget<Text>(find.text('฿0'));
         expect(transferAmount.style?.color, const Color(0xFF1E3A8A));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'allows renaming and immediately deleting unwanted categories via Manage sheet',
+      (WidgetTester tester) async {
+        final List<CategoryModel> customCategories = <CategoryModel>[
+          ...testCategories,
+          CategoryModel(
+            id: 'cat-rider-en',
+            name: 'วิ่ง rider',
+            type: CategoryType.income,
+            icon: 'delivery_dining',
+            color: '#10B981',
+            isArchived: false,
+            sortOrder: 1,
+            createdAt: fixedNow,
+            updatedAt: fixedNow,
+          ),
+          CategoryModel(
+            id: 'cat-rider-th',
+            name: 'วิ่งไรเดอร์',
+            type: CategoryType.income,
+            icon: 'delivery_dining',
+            color: '#10B981',
+            isArchived: false,
+            sortOrder: 2,
+            createdAt: fixedNow,
+            updatedAt: fixedNow,
+          ),
+        ];
+
+        await pumpSheet(
+          tester,
+          categories: customCategories,
+          inUseCategoryIds: const <String>{'cat-rider-en'},
+        );
+
+        // Switch to Income where duplicate rider categories exist
+        await tester.tap(find.text('รายรับ'));
+        await tester.pumpAndSettle();
+        expect(find.text('วิ่ง rider'), findsOneWidget);
+        expect(find.text('วิ่งไรเดอร์'), findsOneWidget);
+
+        // Open inline Manage Categories modal
+        await tester.tap(
+          find.byKey(const ValueKey<String>('transaction_manage_categories_btn')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('จัดการหมวดหมู่'), findsOneWidget);
+
+        // Rename 'วิ่งไรเดอร์' -> 'งานไรเดอร์'
+        await tester.tap(
+          find.byKey(const ValueKey<String>('manage_category_edit_cat-rider-th')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('แก้ไขหมวดหมู่'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey<String>('category_form_delete_button')),
+          findsOneWidget,
+        );
+
+        await tester.enterText(
+          find.descendant(
+            of: find.byType(CategoryFormSheet),
+            matching: find.byType(TextFormField),
+          ),
+          'งานไรเดอร์',
+        );
+        await tester.tap(find.text('บันทึก'));
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+
+        expect(find.text('งานไรเดอร์'), findsWidgets);
+        expect(find.text('วิ่งไรเดอร์'), findsNothing);
+
+        // Delete 'วิ่ง rider' (simulating 409 CATEGORY_IN_USE -> immediate hide fallback)
+        await tester.tap(
+          find.byKey(const ValueKey<String>('manage_category_delete_cat-rider-en')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('ลบหมวดหมู่'), findsOneWidget);
+
+        await tester.tap(find.text('ลบ'));
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+
+        // Unwanted duplicate category disappears immediately from list and strip
+        expect(find.text('วิ่ง rider'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'long-pressing a category tile opens edit/delete actions and deletes directly',
+      (WidgetTester tester) async {
+        await pumpSheet(tester);
+
+        // Long-press 'เดินทาง' in expense category strip
+        await tester.longPress(find.text('เดินทาง'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('แก้ไขหมวดหมู่'), findsOneWidget);
+        expect(find.text('ลบหมวดหมู่'), findsOneWidget);
+
+        // Open edit sheet and delete directly from edit modal
+        await tester.tap(find.text('แก้ไขหมวดหมู่'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('category_form_delete_button')),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('ลบ'));
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+
+        expect(find.text('เดินทาง'), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );

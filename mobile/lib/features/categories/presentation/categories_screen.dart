@@ -313,10 +313,12 @@ class CategoryFormSheet extends ConsumerStatefulWidget {
     super.key,
     this.existing,
     this.initialType = CategoryType.expense,
+    this.onDeleted,
   });
 
   final CategoryModel? existing;
   final CategoryType initialType;
+  final VoidCallback? onDeleted;
 
   @override
   ConsumerState<CategoryFormSheet> createState() => _CategoryFormSheetState();
@@ -390,6 +392,59 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
               : 'เพิ่มหมวดหมู่ใหม่สำเร็จ!',
           subtitle: result.name,
           categoryName: result.type.name,
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _saving = false);
+      MonevoAlert.showError(
+        context,
+        title: strings.tr('เกิดข้อผิดพลาด', 'Error'),
+        message: e.localizedMessage(strings),
+      );
+    }
+  }
+
+  Future<void> _deleteCategory() async {
+    final CategoryModel? existing = widget.existing;
+    if (existing == null || _saving) {
+      return;
+    }
+    final AppStrings strings = AppStrings.of(context);
+    final bool confirmed = await MonevoAlert.showConfirm(
+      context,
+      title: strings.deleteCategory,
+      message: strings.confirmDeleteCategoryPrompt,
+      confirmLabel: strings.delete,
+      cancelLabel: strings.cancel,
+      isDestructive: true,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+    setState(() => _saving = true);
+    HapticFeedback.mediumImpact();
+    try {
+      final CategoryRemovalOutcome outcome = await ref
+          .read(categoriesControllerProvider.notifier)
+          .removeCategoryImmediate(existing.id);
+      widget.onDeleted?.call();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+
+      final BuildContext? targetContext = rootNavigatorKey.currentContext;
+      if (targetContext != null && targetContext.mounted) {
+        MonevoAlert.showSuccess(
+          targetContext,
+          title: outcome == CategoryRemovalOutcome.deleted
+              ? strings.categoryDeleted
+              : strings.categoryArchivedInUse,
+          subtitle: existing.name,
+          categoryName: existing.type.name,
         );
       }
     } on ApiException catch (e) {
@@ -590,6 +645,23 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                   ),
                 ),
               ),
+              if (isEditing) ...<Widget>[
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('category_form_delete_button'),
+                  onPressed: _saving ? null : _deleteCategory,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  label: Text(strings.deleteCategory),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.expense,
+                    side: BorderSide(color: AppColors.expense.withAlpha(110)),
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

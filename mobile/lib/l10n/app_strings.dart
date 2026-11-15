@@ -135,6 +135,9 @@ class AppStrings {
   String get totalAssets => tr('สินทรัพย์รวม', 'Total Assets');
   String get totalLiabilities => tr('หนี้สินรวม', 'Total Liabilities');
   String get monthlyOverview => tr('สรุปประจำเดือน', 'Monthly Summary');
+  String get dailyOverview => tr('สรุปรายวัน', 'Daily Summary');
+  String get monthlySummaryToggle => tr('แบบรายเดือน', 'Monthly');
+  String get dailySummaryToggle => tr('แบบรายวัน', 'Daily');
   String get income => tr('รายรับ', 'Income');
   String get expense => tr('รายจ่าย', 'Expense');
   String get transfer => tr('โอนเงิน', 'Transfer');
@@ -149,6 +152,7 @@ class AppStrings {
   String get recentTransactionsTitle =>
       tr('รายการล่าสุด', 'Recent Transactions');
   String get vsPreviousMonth => tr('เทียบเดือนก่อน', 'vs prev month');
+  String get vsPreviousDay => tr('เทียบวันก่อน', 'vs prev day');
 
   // Accounts
   String get accountsTitle => tr('บัญชีทั้งหมด', 'Accounts');
@@ -199,11 +203,26 @@ class AppStrings {
 
   // Categories
   String get categoriesTitle => tr('จัดการหมวดหมู่', 'Manage Categories');
+  String get manageCategoriesAction => tr('จัดการ', 'Manage');
   String get addCategory => tr('เพิ่มหมวดหมู่', 'New Category');
   String get editCategory => tr('แก้ไขหมวดหมู่', 'Edit Category');
+  String get deleteCategory => tr('ลบหมวดหมู่', 'Delete Category');
   String get categoryName => tr('ชื่อหมวดหมู่', 'Category Name');
   String get selectIcon => tr('เลือกไอคอน', 'Select Icon');
   String get selectColor => tr('เลือกสี', 'Select Color');
+  String get categoryLongPressHint => tr(
+        'กดค้างที่หมวดหมู่เพื่อแก้ไขหรือลบ',
+        'Long-press a category to edit or delete',
+      );
+  String get categoryDeleted => tr('ลบหมวดหมู่เรียบร้อยแล้ว', 'Category deleted');
+  String get categoryArchivedInUse => tr(
+        'หมวดหมู่นี้เคยถูกใช้งาน จึงซ่อนออกจากรายการให้ทันทีแล้ว',
+        'Category is used in past entries, so it was hidden immediately',
+      );
+  String get confirmDeleteCategoryPrompt => tr(
+        'ต้องการลบหมวดหมู่นี้ออกจากรายการทันทีหรือไม่? (หากเคยถูกใช้ในรายการเก่า ระบบจะซ่อนจากตัวเลือกโดยคงประวัติเดิมไว้)',
+        'Remove this category immediately? (If past transactions use it, it will be hidden from pickers while preserving history)',
+      );
 
   // Settings
   String get profileSection => tr('โปรไฟล์เจ้าของบัญชี', 'Owner Profile');

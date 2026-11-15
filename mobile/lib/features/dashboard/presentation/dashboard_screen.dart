@@ -171,7 +171,64 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 14),
                     _MonthlySummaryCard(
                       summary: state.summary!,
+                      mode: state.summaryMode,
+                      selectedDayKey: state.effectiveSelectedDay,
+                      selectedDate: state.effectiveSelectedDate,
+                      dayPoint: state.dailyPointFor(state.effectiveSelectedDay),
+                      prevDayPoint: state.dailyPointFor(
+                        AppDateUtils.toApiDate(
+                          state.effectiveSelectedDate.subtract(
+                            const Duration(days: 1),
+                          ),
+                        ),
+                      ),
+                      isDailyLoading: state.isDailyLoading,
+                      useBuddhistEra: settings.useBuddhistEra,
                       strings: strings,
+                      onModeChanged: (SummaryViewMode mode) {
+                        ref
+                            .read(dashboardControllerProvider.notifier)
+                            .setSummaryMode(mode);
+                      },
+                      onPreviousDay: () {
+                        ref
+                            .read(dashboardControllerProvider.notifier)
+                            .stepSummaryDay(-1);
+                      },
+                      onNextDay: () {
+                        ref
+                            .read(dashboardControllerProvider.notifier)
+                            .stepSummaryDay(1);
+                      },
+                      onJumpToday: () {
+                        ref
+                            .read(dashboardControllerProvider.notifier)
+                            .selectSummaryDay(DateTime.now());
+                      },
+                      onPickDay: () async {
+                        final DateTime now = DateTime.now();
+                        final DateTime today = DateTime(
+                          now.year,
+                          now.month,
+                          now.day,
+                        );
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: state.effectiveSelectedDate.isAfter(today)
+                              ? today
+                              : state.effectiveSelectedDate,
+                          firstDate: DateTime(2015, 1, 1),
+                          lastDate: today,
+                          locale: strings.isThai
+                              ? const Locale('th', 'TH')
+                              : const Locale('en', 'US'),
+                        );
+                        if (picked != null && context.mounted) {
+                          ref
+                              .read(dashboardControllerProvider.notifier)
+                              .selectSummaryDay(picked);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     _IncomeVsExpenseComparisonCard(
@@ -899,20 +956,74 @@ class _QuickActionChip extends StatelessWidget {
 class _MonthlySummaryCard extends StatelessWidget {
   const _MonthlySummaryCard({
     required this.summary,
+    required this.mode,
+    required this.selectedDayKey,
+    required this.selectedDate,
+    required this.dayPoint,
+    required this.prevDayPoint,
+    required this.isDailyLoading,
+    required this.useBuddhistEra,
     required this.strings,
+    required this.onModeChanged,
+    required this.onPreviousDay,
+    required this.onNextDay,
+    required this.onJumpToday,
+    required this.onPickDay,
   });
 
   final DashboardSummary summary;
+  final SummaryViewMode mode;
+  final String selectedDayKey;
+  final DateTime selectedDate;
+  final DailyCashflowPoint dayPoint;
+  final DailyCashflowPoint prevDayPoint;
+  final bool isDailyLoading;
+  final bool useBuddhistEra;
   final AppStrings strings;
+  final ValueChanged<SummaryViewMode> onModeChanged;
+  final VoidCallback onPreviousDay;
+  final VoidCallback onNextDay;
+  final VoidCallback onJumpToday;
+  final VoidCallback onPickDay;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final double? savingsRate = summary.savingsRate;
+    final bool isDaily = mode == SummaryViewMode.daily;
+    final int activeIncome = isDaily ? dayPoint.income : summary.income;
+    final int activeExpense = isDaily ? dayPoint.expense : summary.expense;
+    final int prevIncome =
+        isDaily ? prevDayPoint.income : summary.previousMonth.income;
+    final int prevExpense =
+        isDaily ? prevDayPoint.expense : summary.previousMonth.expense;
+    final int activeNet = isDaily ? (activeIncome - activeExpense) : summary.net;
+    final String compareLabel =
+        isDaily ? strings.vsPreviousDay : strings.vsPreviousMonth;
+
+    final double? savingsRate;
+    if (isDaily) {
+      if (activeIncome > 0) {
+        savingsRate = (activeIncome - activeExpense) / activeIncome;
+      } else if (activeExpense > 0) {
+        savingsRate = null;
+      } else {
+        savingsRate = 0.0;
+      }
+    } else {
+      savingsRate = summary.savingsRate;
+    }
+
     final String savingsText = savingsRate != null
         ? '${(savingsRate * 100).toStringAsFixed(1)}%'
         : '—';
+    final String todayKey = AppDateUtils.toApiDate(DateTime.now());
+    final bool isToday = selectedDayKey == todayKey;
+    final String dayLabel = AppDateUtils.formatDayHeader(
+      selectedDate,
+      strings: strings,
+      useBuddhistEra: useBuddhistEra,
+    );
 
     return PremiumCard(
       padding: const EdgeInsets.all(18),
@@ -934,7 +1045,9 @@ class _MonthlySummaryCard extends StatelessWidget {
                       const EmeraldPieIcon(size: 20),
                       const SizedBox(width: 7),
                       Text(
-                        strings.monthlyOverview,
+                        isDaily
+                            ? strings.dailyOverview
+                            : strings.monthlyOverview,
                         maxLines: 1,
                         softWrap: false,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -949,58 +1062,217 @@ class _MonthlySummaryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 flex: 6,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+                child: Align(
                   alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.income.withAlpha(32)
-                          : const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          '${strings.savingsRate} : $savingsText',
-                          maxLines: 1,
-                          softWrap: false,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 12,
-                            color: isDark
-                                ? const Color(0xFF6EE7B7)
-                                : const Color(0xFF065F46),
-                            fontWeight: FontWeight.w800,
+                  child: _SummaryModeToggle(
+                    mode: mode,
+                    strings: strings,
+                    onChanged: onModeChanged,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isDaily) ...<Widget>[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? theme.colorScheme.surfaceContainerHighest.withAlpha(90)
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withAlpha(110),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  _DayStepButton(
+                    key: const ValueKey<String>('summary_prev_day'),
+                    icon: Icons.chevron_left_rounded,
+                    onTap: onPreviousDay,
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      key: const ValueKey<String>('summary_pick_day'),
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: onPickDay,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 6,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: 13.5,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                dayLabel,
+                                maxLines: 1,
+                                softWrap: false,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              if (isDailyLoading)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4),
+                                  child: SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 3),
-                        Icon(
-                          Icons.north_east_rounded,
-                          size: 13,
-                          color: isDark
-                              ? const Color(0xFF34D399)
-                              : const Color(0xFF059669),
+                      ),
+                    ),
+                  ),
+                  if (!isToday) ...<Widget>[
+                    GestureDetector(
+                      key: const ValueKey<String>('summary_jump_today'),
+                      onTap: onJumpToday,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ],
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withAlpha(24),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          strings.today,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
+                  _DayStepButton(
+                    key: const ValueKey<String>('summary_next_day'),
+                    icon: Icons.chevron_right_rounded,
+                    onTap: isToday ? null : onNextDay,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Flexible(
+                flex: 5,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '${strings.netCashflow} : ',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      AmountText(
+                        satang: activeNet,
+                        showPlusSign: true,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: activeNet >= 0
+                              ? AppColors.income
+                              : AppColors.expense,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 5,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.income.withAlpha(32)
+                            : const Color(0xFFD1FAE5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            '${strings.savingsRate} : $savingsText',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 12,
+                              color: isDark
+                                  ? const Color(0xFF6EE7B7)
+                                  : const Color(0xFF065F46),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Icon(
+                            Icons.north_east_rounded,
+                            size: 13,
+                            color: isDark
+                                ? const Color(0xFF34D399)
+                                : const Color(0xFF059669),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Row(
             children: <Widget>[
               Expanded(
                 child: _MetricColumn(
                   label: strings.income,
-                  satang: summary.income,
-                  prevSatang: summary.previousMonth.income,
+                  satang: activeIncome,
+                  prevSatang: prevIncome,
+                  compareLabel: compareLabel,
                   color: const Color(0xFF059669),
                   gradientColors: isDark
                       ? <Color>[
@@ -1012,15 +1284,15 @@ class _MonthlySummaryCard extends StatelessWidget {
                       ? AppColors.income.withAlpha(65)
                       : const Color(0xFFA7F3D0).withAlpha(110),
                   icon: Icons.north_east_rounded,
-                  strings: strings,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _MetricColumn(
                   label: strings.expense,
-                  satang: summary.expense,
-                  prevSatang: summary.previousMonth.expense,
+                  satang: activeExpense,
+                  prevSatang: prevExpense,
+                  compareLabel: compareLabel,
                   color: const Color(0xFFE11D48),
                   gradientColors: isDark
                       ? <Color>[
@@ -1032,7 +1304,6 @@ class _MonthlySummaryCard extends StatelessWidget {
                       ? AppColors.expense.withAlpha(65)
                       : const Color(0xFFFECDD3).withAlpha(110),
                   icon: Icons.arrow_downward_rounded,
-                  strings: strings,
                 ),
               ),
             ],
@@ -1043,26 +1314,158 @@ class _MonthlySummaryCard extends StatelessWidget {
   }
 }
 
+class _SummaryModeToggle extends StatelessWidget {
+  const _SummaryModeToggle({
+    required this.mode,
+    required this.strings,
+    required this.onChanged,
+  });
+
+  final SummaryViewMode mode;
+  final AppStrings strings;
+  final ValueChanged<SummaryViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: isDark
+              ? theme.colorScheme.surfaceContainerHighest.withAlpha(130)
+              : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _SummaryModePill(
+              key: const ValueKey<String>('summary_mode_monthly'),
+              label: strings.monthlySummaryToggle,
+              selected: mode == SummaryViewMode.monthly,
+              onTap: () => onChanged(SummaryViewMode.monthly),
+            ),
+            _SummaryModePill(
+              key: const ValueKey<String>('summary_mode_daily'),
+              label: strings.dailySummaryToggle,
+              selected: mode == SummaryViewMode.daily,
+              onTap: () => onChanged(SummaryViewMode.daily),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryModePill extends StatelessWidget {
+  const _SummaryModePill({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected
+              ? (isDark ? AppColors.primaryEmerald : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: selected && !isDark
+              ? const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x140F172A),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          style: theme.textTheme.labelSmall?.copyWith(
+            fontSize: 11.5,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            color: selected
+                ? (isDark ? Colors.white : const Color(0xFF065F46))
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DayStepButton extends StatelessWidget {
+  const _DayStepButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool enabled = onTap != null;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled
+              ? theme.colorScheme.onSurface
+              : theme.colorScheme.onSurfaceVariant.withAlpha(80),
+        ),
+      ),
+    );
+  }
+}
+
 class _MetricColumn extends StatelessWidget {
   const _MetricColumn({
     required this.label,
     required this.satang,
     required this.prevSatang,
+    required this.compareLabel,
     required this.color,
     required this.gradientColors,
     required this.borderColor,
     required this.icon,
-    required this.strings,
   });
 
   final String label;
   final int satang;
   final int prevSatang;
+  final String compareLabel;
   final Color color;
   final List<Color> gradientColors;
   final Color borderColor;
   final IconData icon;
-  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -1138,7 +1541,7 @@ class _MetricColumn extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Text(
-                        '${strings.vsPreviousMonth} : ',
+                        '$compareLabel : ',
                         maxLines: 1,
                         softWrap: false,
                         style: theme.textTheme.labelSmall?.copyWith(

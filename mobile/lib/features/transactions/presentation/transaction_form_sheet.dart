@@ -671,6 +671,141 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
+  Future<void> _editCategory(CategoryModel category) async {
+    await showModalBottomSheet<CategoryModel>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => CategoryFormSheet(
+        existing: category,
+        onDeleted: () {
+          if (_categoryId == category.id && mounted) {
+            setState(() => _categoryId = null);
+          }
+        },
+      ),
+    );
+  }
+
+  Future<bool> _confirmAndDeleteCategory(
+    BuildContext dialogContext,
+    CategoryModel category, {
+    required AppStrings strings,
+  }) async {
+    final bool confirmed = await MonevoAlert.showConfirm(
+      dialogContext,
+      title: strings.deleteCategory,
+      message: '${strings.confirmDeleteCategoryPrompt}\n("${category.name}")',
+      confirmLabel: strings.delete,
+      cancelLabel: strings.cancel,
+      isDestructive: true,
+    );
+    if (!confirmed) {
+      return false;
+    }
+    HapticFeedback.mediumImpact();
+    try {
+      final CategoryRemovalOutcome outcome = await ref
+          .read(categoriesControllerProvider.notifier)
+          .removeCategoryImmediate(category.id);
+      if (mounted && _categoryId == category.id) {
+        setState(() => _categoryId = null);
+      }
+      final BuildContext? alertContext =
+          rootNavigatorKey.currentContext ?? (mounted ? context : null);
+      if (alertContext != null && alertContext.mounted) {
+        MonevoAlert.showSuccess(
+          alertContext,
+          title: outcome == CategoryRemovalOutcome.deleted
+              ? strings.categoryDeleted
+              : strings.categoryArchivedInUse,
+          subtitle: category.name,
+          categoryName: category.type.name,
+        );
+      }
+      return true;
+    } on ApiException catch (e) {
+      if (dialogContext.mounted) {
+        MonevoAlert.showError(
+          dialogContext,
+          title: strings.tr('เกิดข้อผิดพลาด', 'Error'),
+          message: e.localizedMessage(strings),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _showCategoryTileActions(
+    CategoryModel category, {
+    required AppStrings strings,
+    required _TransactionFormPalette palette,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetContext) {
+        return _CategoryActionSheet(
+          category: category,
+          strings: strings,
+          palette: palette,
+          onEdit: () {
+            Navigator.of(sheetContext).pop();
+            _editCategory(category);
+          },
+          onDelete: () async {
+            final bool deleted = await _confirmAndDeleteCategory(
+              sheetContext,
+              category,
+              strings: strings,
+            );
+            if (deleted && sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openCategoryManager({
+    required AppStrings strings,
+    required _TransactionFormPalette palette,
+  }) async {
+    final CategoryType targetType = _type == TransactionType.income
+        ? CategoryType.income
+        : CategoryType.expense;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetContext) {
+        return _CategoryManagerBottomSheet(
+          categoryType: targetType,
+          selectedCategoryId: _categoryId,
+          strings: strings,
+          palette: palette,
+          onEdit: _editCategory,
+          onDelete: (CategoryModel cat) =>
+              _confirmAndDeleteCategory(sheetContext, cat, strings: strings),
+          onAddCategory: () async {
+            final CategoryModel? created =
+                await showModalBottomSheet<CategoryModel>(
+                  context: sheetContext,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  builder: (_) => CategoryFormSheet(initialType: targetType),
+                );
+            if (created != null && mounted) {
+              setState(() => _categoryId = created.id);
+            }
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppStrings strings = AppStrings.of(context);
@@ -991,22 +1126,26 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
-                        Expanded(
-                          child: Row(
-                            children: <Widget>[
-                              Icon(
-                                Icons.grid_view_rounded,
-                                size: 17,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF0F172A),
-                              ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
+                        Flexible(
+                          flex: 4,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.grid_view_rounded,
+                                  size: 17,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
                                   strings.category,
                                   maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: false,
                                   style: TextStyle(
                                     fontSize: 14.5,
                                     fontWeight: FontWeight.w800,
@@ -1015,59 +1154,109 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                         : const Color(0xFF0F172A),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Flexible(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () async {
-                              final CategoryModel? created =
-                                  await showModalBottomSheet<CategoryModel>(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    useSafeArea: true,
-                                    builder: (_) => CategoryFormSheet(
-                                      initialType:
-                                          _type == TransactionType.income
-                                          ? CategoryType.income
-                                          : CategoryType.expense,
-                                    ),
-                                  );
-                              if (created != null && mounted) {
-                                setState(() => _categoryId = created.id);
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Icon(
-                                    Icons.add_rounded,
-                                    size: 16,
-                                    color: palette.accentIcon,
+                          flex: 7,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                InkWell(
+                                  key: const ValueKey<String>(
+                                    'transaction_manage_categories_btn',
                                   ),
-                                  const SizedBox(width: 3),
-                                  Flexible(
-                                    child: Text(
-                                      strings.addCategory,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: palette.accentIcon,
-                                      ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () => _openCategoryManager(
+                                    strings: strings,
+                                    palette: palette,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(
+                                          Icons.tune_rounded,
+                                          size: 14.5,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          strings.manageCategoriesAction,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 2),
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () async {
+                                    final CategoryModel? created =
+                                        await showModalBottomSheet<CategoryModel>(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          useSafeArea: true,
+                                          builder: (_) => CategoryFormSheet(
+                                            initialType:
+                                                _type == TransactionType.income
+                                                ? CategoryType.income
+                                                : CategoryType.expense,
+                                          ),
+                                        );
+                                    if (created != null && mounted) {
+                                      setState(() => _categoryId = created.id);
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(
+                                          Icons.add_rounded,
+                                          size: 16,
+                                          color: palette.accentIcon,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          strings.addCategory,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: palette.accentIcon,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -1097,6 +1286,14 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                               setState(() {
                                 _categoryId = selected ? null : cat.id;
                               });
+                            },
+                            onLongPress: () {
+                              HapticFeedback.mediumImpact();
+                              _showCategoryTileActions(
+                                cat,
+                                strings: strings,
+                                palette: palette,
+                              );
                             },
                             child: Stack(
                               clipBehavior: Clip.none,
@@ -1200,6 +1397,18 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         },
                       ),
                     ),
+                    if (availableCategories.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        strings.categoryLongPressHint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
                   ],
 
                   const SizedBox(height: 10),
@@ -2753,10 +2962,11 @@ class _AccountPickerBottomSheet extends StatelessWidget {
     final bool isDark = theme.brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Container(
+      child: Material(
         color: palette.sheetBackground,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-        child: Column(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -2888,7 +3098,8 @@ class _AccountPickerBottomSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -3067,5 +3278,287 @@ class _PrimarySubmitButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _CategoryActionSheet extends StatelessWidget {
+  const _CategoryActionSheet({
+    required this.category,
+    required this.strings,
+    required this.palette,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final CategoryModel category;
+  final AppStrings strings;
+  final _TransactionFormPalette palette;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color catColor = AppColors.fromHex(category.color);
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: palette.sheetBackground,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 22),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: catColor.withAlpha(28),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        IconMapper.resolve(category.icon),
+                        color: catColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        category.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(
+                    strings.editCategory,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  onTap: onEdit,
+                ),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.expense,
+                  ),
+                  title: Text(
+                    strings.deleteCategory,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.expense,
+                    ),
+                  ),
+                  onTap: onDelete,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryManagerBottomSheet extends ConsumerWidget {
+  const _CategoryManagerBottomSheet({
+    required this.categoryType,
+    required this.selectedCategoryId,
+    required this.strings,
+    required this.palette,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onAddCategory,
+  });
+
+  final CategoryType categoryType;
+  final String? selectedCategoryId;
+  final AppStrings strings;
+  final _TransactionFormPalette palette;
+  final ValueChanged<CategoryModel> onEdit;
+  final Future<bool> Function(CategoryModel) onDelete;
+  final VoidCallback onAddCategory;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final List<CategoryModel> items = ref
+        .watch(categoriesControllerProvider)
+        .byType(categoryType, activeOnly: true);
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: palette.sheetBackground,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+          child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    strings.categoriesTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onAddCategory,
+                  style: TextButton.styleFrom(
+                    foregroundColor: palette.accentIcon,
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 17),
+                  label: Text(strings.addCategory),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                child: Text(
+                  strings.noData,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (BuildContext context, int index) {
+                    final CategoryModel cat = items[index];
+                    final Color catColor = AppColors.fromHex(cat.color);
+                    final bool selected = cat.id == selectedCategoryId;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? palette.selectedCategoryBg
+                            : (isDark ? AppColors.darkSurface : Colors.white),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: selected
+                              ? palette.selectedCategoryBorder
+                              : palette.categoryCardBorder,
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: catColor.withAlpha(28),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              IconMapper.resolve(cat.icon),
+                              color: catColor,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              cat.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            key: ValueKey<String>(
+                              'manage_category_edit_${cat.id}',
+                            ),
+                            tooltip: strings.edit,
+                            onPressed: () => onEdit(cat),
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 19,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            key: ValueKey<String>(
+                              'manage_category_delete_${cat.id}',
+                            ),
+                            tooltip: strings.delete,
+                            onPressed: () => onDelete(cat),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 19,
+                              color: AppColors.expense,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
   }
 }

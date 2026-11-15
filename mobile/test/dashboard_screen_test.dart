@@ -9,6 +9,7 @@ import 'package:monevo/core/storage/local_cache_service.dart';
 import 'package:monevo/core/storage/preferences_service.dart';
 import 'package:monevo/core/storage/secure_storage_service.dart';
 import 'package:monevo/core/theme/app_theme.dart';
+import 'package:monevo/core/utils/date_utils.dart';
 import 'package:monevo/features/accounts/data/accounts_api.dart';
 import 'package:monevo/features/accounts/data/accounts_repository.dart';
 import 'package:monevo/features/accounts/presentation/accounts_controller.dart';
@@ -419,6 +420,79 @@ void main() {
         await tester.drag(scrollFinder, const Offset(250, 0));
         await tester.pumpAndSettle();
         expect(controller.offset, lessThan(controller.position.maxScrollExtent));
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'toggles daily summary view and steps across individual dates cleanly at 360x800',
+      (WidgetTester tester) async {
+        final DateTime now = DateTime.now();
+        final DateTime today = DateTime(now.year, now.month, now.day);
+        final DateTime yesterday = today.subtract(const Duration(days: 1));
+        final DateTime twoDaysAgo = today.subtract(const Duration(days: 2));
+        final String todayKey = AppDateUtils.toApiDate(today);
+        final String yesterdayKey = AppDateUtils.toApiDate(yesterday);
+        final String twoDaysAgoKey = AppDateUtils.toApiDate(twoDaysAgo);
+
+        final DashboardState state = buildRealisticState().copyWith(
+          dailySummaryCache: <String, DailyCashflowPoint>{
+            twoDaysAgoKey: DailyCashflowPoint(
+              date: twoDaysAgoKey,
+              income: 0,
+              expense: 10000,
+              net: -10000,
+            ),
+            yesterdayKey: DailyCashflowPoint(
+              date: yesterdayKey,
+              income: 20000,
+              expense: 5000,
+              net: 15000,
+            ),
+            todayKey: DailyCashflowPoint(
+              date: todayKey,
+              income: 32000,
+              expense: 29900,
+              net: 2100,
+            ),
+          },
+        );
+
+        await pumpDashboard(tester, state);
+
+        // Monthly view is shown initially with toggle option for daily view
+        expect(find.text('สรุปประจำเดือน'), findsOneWidget);
+        expect(find.text('แบบรายวัน'), findsOneWidget);
+
+        // Switch to daily mode -> shows today's income/expense & comparison vs prev day
+        await tester.tap(find.byKey(const ValueKey<String>('summary_mode_daily')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('สรุปรายวัน'), findsOneWidget);
+        expect(find.text('เทียบวันก่อน : '), findsNWidgets(2));
+        expect(find.text('฿320.00'), findsOneWidget);
+        expect(find.text('฿299.00'), findsOneWidget);
+        expect(find.text('+฿21.00'), findsOneWidget);
+        expect(find.text('อัตราการออม : 6.6%'), findsOneWidget);
+
+        // Step to previous day -> shows yesterday's breakdown and Today shortcut
+        await tester.tap(find.byKey(const ValueKey<String>('summary_prev_day')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('฿200.00'), findsOneWidget);
+        expect(find.text('฿50.00'), findsOneWidget);
+        expect(find.text('+฿150.00'), findsOneWidget);
+        expect(find.text('อัตราการออม : 75.0%'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey<String>('summary_jump_today')),
+          findsOneWidget,
+        );
+
+        // Jump back to today via shortcut pill
+        await tester.tap(find.byKey(const ValueKey<String>('summary_jump_today')));
+        await tester.pumpAndSettle();
+        expect(find.text('฿320.00'), findsOneWidget);
 
         expect(tester.takeException(), isNull);
       },
